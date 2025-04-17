@@ -172,6 +172,7 @@ export const VALIDATION_RULES = {
 interface ApplicationContextType {
   applications: StudentApplication[];
   classes: ClassInfo[];
+  VALIDATION_RULES: typeof VALIDATION_RULES;  // Add this line to expose VALIDATION_RULES
   addApplication: (application: Omit<StudentApplication, 'id' | 'createdAt' | 'updatedAt'>) => string;
   updateApplication: (id: string, updates: Partial<StudentApplication>) => boolean;
   getApplication: (id: string) => StudentApplication | undefined;
@@ -309,6 +310,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     <ApplicationContext.Provider value={{
       applications,
       classes,
+      VALIDATION_RULES,  // Add this line to include VALIDATION_RULES in the context value
       addApplication,
       updateApplication,
       getApplication,
