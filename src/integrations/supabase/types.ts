@@ -9,6 +9,69 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      applications: {
+        Row: {
+          call_response: string | null
+          class_code: string
+          created_at: string
+          current_residence: Json
+          followup_by: string | null
+          hometown_details: Json
+          id: string
+          naqeeb: string | null
+          naqeeb_response: string | null
+          other_details: Json
+          referred_by: Json
+          remarks: string | null
+          status: string
+          student_category: string | null
+          student_details: Json
+          student_nature: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          call_response?: string | null
+          class_code: string
+          created_at?: string
+          current_residence: Json
+          followup_by?: string | null
+          hometown_details: Json
+          id?: string
+          naqeeb?: string | null
+          naqeeb_response?: string | null
+          other_details: Json
+          referred_by: Json
+          remarks?: string | null
+          status?: string
+          student_category?: string | null
+          student_details: Json
+          student_nature?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          call_response?: string | null
+          class_code?: string
+          created_at?: string
+          current_residence?: Json
+          followup_by?: string | null
+          hometown_details?: Json
+          id?: string
+          naqeeb?: string | null
+          naqeeb_response?: string | null
+          other_details?: Json
+          referred_by?: Json
+          remarks?: string | null
+          status?: string
+          student_category?: string | null
+          student_details?: Json
+          student_nature?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       "applications-class1": {
         Row: {
           "Application ID": number | null
@@ -114,15 +177,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: { _role: Database["public"]["Enums"]["app_role"] }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -237,6 +321,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const

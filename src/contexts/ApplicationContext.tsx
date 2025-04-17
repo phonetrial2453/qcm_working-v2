@@ -1,6 +1,7 @@
-
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from '@/components/ui/sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './AuthContext';
 
 // Define application structure
 export interface StudentApplication {
@@ -172,80 +173,156 @@ export const VALIDATION_RULES = {
 interface ApplicationContextType {
   applications: StudentApplication[];
   classes: ClassInfo[];
-  VALIDATION_RULES: typeof VALIDATION_RULES;  // Add this line to expose VALIDATION_RULES
-  addApplication: (application: Omit<StudentApplication, 'id' | 'createdAt' | 'updatedAt'>) => string;
-  updateApplication: (id: string, updates: Partial<StudentApplication>) => boolean;
+  VALIDATION_RULES: typeof VALIDATION_RULES;
+  addApplication: (application: Omit<StudentApplication, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
+  updateApplication: (id: string, updates: Partial<StudentApplication>) => Promise<boolean>;
   getApplication: (id: string) => StudentApplication | undefined;
   getApplicationsByClass: (classCode: string) => StudentApplication[];
   validateApplication: (application: Partial<StudentApplication>) => { valid: boolean; errors: string[] };
-  deleteApplication: (id: string) => boolean;
+  deleteApplication: (id: string) => Promise<boolean>;
   generateApplicationId: (classCode: string) => string;
 }
 
 const ApplicationContext = createContext<ApplicationContextType | undefined>(undefined);
 
 export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [applications, setApplications] = useState<StudentApplication[]>(MOCK_APPLICATIONS);
+  const [applications, setApplications] = useState<StudentApplication[]>([]);
   const [classes] = useState<ClassInfo[]>(MOCK_CLASSES);
+  const { user } = useAuth();
 
-  // Generate a unique application ID
-  const generateApplicationId = (classCode: string): string => {
-    const classApplications = applications.filter(app => app.classCode === classCode);
-    const nextNumber = classApplications.length + 1;
-    return `${classCode}${nextNumber.toString().padStart(4, '0')}`;
+  useEffect(() => {
+    if (user) {
+      fetchApplications();
+    }
+  }, [user]);
+
+  const fetchApplications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('applications')
+        .select('*');
+      
+      if (error) throw error;
+      
+      setApplications(data.map(app => ({
+        ...app,
+        studentDetails: app.student_details,
+        hometownDetails: app.hometown_details,
+        currentResidence: app.current_residence,
+        otherDetails: app.other_details,
+        referredBy: app.referred_by,
+      })));
+    } catch (error: any) {
+      toast.error('Error fetching applications: ' + error.message);
+    }
   };
 
-  // Add a new application
-  const addApplication = (applicationData: Omit<StudentApplication, 'id' | 'createdAt' | 'updatedAt'>): string => {
-    const id = generateApplicationId(applicationData.classCode);
-    const now = new Date().toISOString();
-    
-    const newApplication: StudentApplication = {
-      ...applicationData,
-      id,
-      createdAt: now,
-      updatedAt: now,
-    };
-    
-    setApplications(prev => [...prev, newApplication]);
-    toast.success(`Application ${id} created successfully`);
-    return id;
+  const addApplication = async (applicationData: Omit<StudentApplication, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      if (!user) throw new Error('User must be logged in to add applications');
+
+      const { data, error } = await supabase
+        .from('applications')
+        .insert([{
+          class_code: applicationData.classCode,
+          status: applicationData.status,
+          remarks: applicationData.remarks,
+          student_details: applicationData.studentDetails,
+          hometown_details: applicationData.hometownDetails,
+          current_residence: applicationData.currentResidence,
+          other_details: applicationData.otherDetails,
+          referred_by: applicationData.referredBy,
+          call_response: applicationData.callResponse,
+          student_nature: applicationData.studentNature,
+          student_category: applicationData.studentCategory,
+          followup_by: applicationData.followUpBy,
+          naqeeb: applicationData.naqeeb,
+          naqeeb_response: applicationData.naqeebResponse,
+          user_id: user.id
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newApplication = {
+        ...applicationData,
+        id: data.id,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
+
+      setApplications(prev => [...prev, newApplication]);
+      toast.success(`Application ${data.id} created successfully`);
+      return data.id;
+    } catch (error: any) {
+      toast.error('Error creating application: ' + error.message);
+      throw error;
+    }
   };
 
-  // Update an existing application
-  const updateApplication = (id: string, updates: Partial<StudentApplication>): boolean => {
-    const index = applications.findIndex(app => app.id === id);
-    
-    if (index === -1) {
-      toast.error(`Application ${id} not found`);
+  const updateApplication = async (id: string, updates: Partial<StudentApplication>) => {
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({
+          class_code: updates.classCode,
+          status: updates.status,
+          remarks: updates.remarks,
+          student_details: updates.studentDetails,
+          hometown_details: updates.hometownDetails,
+          current_residence: updates.currentResidence,
+          other_details: updates.otherDetails,
+          referred_by: updates.referredBy,
+          call_response: updates.callResponse,
+          student_nature: updates.studentNature,
+          student_category: updates.studentCategory,
+          followup_by: updates.followUpBy,
+          naqeeb: updates.naqeeb,
+          naqeeb_response: updates.naqeebResponse
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setApplications(prev => prev.map(app => 
+        app.id === id ? { ...app, ...updates } : app
+      ));
+      
+      toast.success(`Application ${id} updated successfully`);
+      return true;
+    } catch (error: any) {
+      toast.error('Error updating application: ' + error.message);
       return false;
     }
-    
-    const updatedApplication = {
-      ...applications[index],
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
-    
-    const newApplications = [...applications];
-    newApplications[index] = updatedApplication;
-    
-    setApplications(newApplications);
-    toast.success(`Application ${id} updated successfully`);
-    return true;
   };
 
-  // Get a specific application by ID
+  const deleteApplication = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setApplications(prev => prev.filter(app => app.id !== id));
+      toast.success(`Application ${id} deleted successfully`);
+      return true;
+    } catch (error: any) {
+      toast.error('Error deleting application: ' + error.message);
+      return false;
+    }
+  };
+
   const getApplication = (id: string): StudentApplication | undefined => {
     return applications.find(app => app.id === id);
   };
 
-  // Get applications for a specific class
   const getApplicationsByClass = (classCode: string): StudentApplication[] => {
     return applications.filter(app => app.classCode === classCode);
   };
 
-  // Validate an application against the rules
   const validateApplication = (application: Partial<StudentApplication>): { valid: boolean; errors: string[] } => {
     const errors: string[] = [];
     
@@ -289,28 +366,17 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     };
   };
 
-  // Delete an application
-  const deleteApplication = (id: string): boolean => {
-    const index = applications.findIndex(app => app.id === id);
-    
-    if (index === -1) {
-      toast.error(`Application ${id} not found`);
-      return false;
-    }
-    
-    const newApplications = [...applications];
-    newApplications.splice(index, 1);
-    
-    setApplications(newApplications);
-    toast.success(`Application ${id} deleted successfully`);
-    return true;
+  const generateApplicationId = (classCode: string): string => {
+    const classApplications = applications.filter(app => app.classCode === classCode);
+    const nextNumber = classApplications.length + 1;
+    return `${classCode}${nextNumber.toString().padStart(4, '0')}`;
   };
 
   return (
     <ApplicationContext.Provider value={{
       applications,
       classes,
-      VALIDATION_RULES,  // Add this line to include VALIDATION_RULES in the context value
+      VALIDATION_RULES,
       addApplication,
       updateApplication,
       getApplication,
@@ -324,7 +390,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   );
 };
 
-export const useApplications = (): ApplicationContextType => {
+export const useApplications = () => {
   const context = useContext(ApplicationContext);
   if (context === undefined) {
     throw new Error('useApplications must be used within an ApplicationProvider');
