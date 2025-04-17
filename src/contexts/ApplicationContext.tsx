@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from '@/components/ui/sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -102,6 +103,25 @@ interface ApplicationContextType {
 
 const ApplicationContext = createContext<ApplicationContextType | undefined>(undefined);
 
+// Helper function to safely parse JSON or return a default value
+const safeParseJson = <T extends object>(jsonValue: Json | null, defaultValue: T): T => {
+  if (!jsonValue) return defaultValue;
+  
+  if (typeof jsonValue === 'object') {
+    return jsonValue as unknown as T;
+  }
+  
+  try {
+    if (typeof jsonValue === 'string') {
+      return JSON.parse(jsonValue) as T;
+    }
+    return defaultValue;
+  } catch (e) {
+    console.error('Error parsing JSON:', e);
+    return defaultValue;
+  }
+};
+
 export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [applications, setApplications] = useState<StudentApplication[]>([]);
   const [classes] = useState<ClassInfo[]>(MOCK_CLASSES);
@@ -121,59 +141,34 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       
       if (error) throw error;
       
-      const mappedApplications: StudentApplication[] = data.map(app => ({
-        id: app.id,
-        classCode: app.class_code,
-        status: app.status as 'pending' | 'approved' | 'rejected',
-        remarks: app.remarks || undefined,
-        createdAt: app.created_at,
-        updatedAt: app.updated_at,
-        studentDetails: typeof app.student_details === 'object' 
-          ? app.student_details as StudentApplication['studentDetails']
-          : { 
-            fullName: '', 
-            mobile: '', 
-            whatsapp: '' 
-          },
-        hometownDetails: typeof app.hometown_details === 'object'
-          ? app.hometown_details as StudentApplication['hometownDetails']
-          : {
-            area: '',
-            city: '',
-            district: '',
-            state: ''
-          },
-        currentResidence: typeof app.current_residence === 'object'
-          ? app.current_residence as StudentApplication['currentResidence']
-          : {
-            area: '',
-            mandal: '',
-            city: '',
-            state: ''
-          },
-        otherDetails: typeof app.other_details === 'object'
-          ? app.other_details as StudentApplication['otherDetails']
-          : {
-            age: 0,
-            qualification: '',
-            profession: '',
-            email: ''
-          },
-        referredBy: typeof app.referred_by === 'object'
-          ? app.referred_by as StudentApplication['referredBy']
-          : {
-            fullName: '',
-            mobile: '',
-            studentId: '',
-            batch: ''
-          },
-        callResponse: app.call_response || undefined,
-        studentNature: app.student_nature || undefined,
-        studentCategory: app.student_category || undefined,
-        followUpBy: app.followup_by || undefined,
-        naqeeb: app.naqeeb || undefined,
-        naqeebResponse: app.naqeeb_response || undefined
-      }));
+      const mappedApplications: StudentApplication[] = data.map(app => {
+        // Define default values for complex objects
+        const defaultStudentDetails = { fullName: '', mobile: '', whatsapp: '' };
+        const defaultHometownDetails = { area: '', city: '', district: '', state: '' };
+        const defaultCurrentResidence = { area: '', mandal: '', city: '', state: '' };
+        const defaultOtherDetails = { age: 0, qualification: '', profession: '', email: '' };
+        const defaultReferredBy = { fullName: '', mobile: '', studentId: '', batch: '' };
+        
+        return {
+          id: app.id,
+          classCode: app.class_code,
+          status: app.status as 'pending' | 'approved' | 'rejected',
+          remarks: app.remarks || undefined,
+          createdAt: app.created_at,
+          updatedAt: app.updated_at,
+          studentDetails: safeParseJson(app.student_details, defaultStudentDetails),
+          hometownDetails: safeParseJson(app.hometown_details, defaultHometownDetails),
+          currentResidence: safeParseJson(app.current_residence, defaultCurrentResidence),
+          otherDetails: safeParseJson(app.other_details, defaultOtherDetails),
+          referredBy: safeParseJson(app.referred_by, defaultReferredBy),
+          callResponse: app.call_response || undefined,
+          studentNature: app.student_nature || undefined,
+          studentCategory: app.student_category || undefined,
+          followUpBy: app.followup_by || undefined,
+          naqeeb: app.naqeeb || undefined,
+          naqeebResponse: app.naqeeb_response || undefined
+        };
+      });
       
       setApplications(mappedApplications);
     } catch (error: any) {
@@ -191,11 +186,11 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
           class_code: applicationData.classCode,
           status: applicationData.status,
           remarks: applicationData.remarks,
-          student_details: applicationData.studentDetails,
-          hometown_details: applicationData.hometownDetails,
-          current_residence: applicationData.currentResidence,
-          other_details: applicationData.otherDetails,
-          referred_by: applicationData.referredBy,
+          student_details: applicationData.studentDetails as unknown as Json,
+          hometown_details: applicationData.hometownDetails as unknown as Json,
+          current_residence: applicationData.currentResidence as unknown as Json,
+          other_details: applicationData.otherDetails as unknown as Json,
+          referred_by: applicationData.referredBy as unknown as Json,
           call_response: applicationData.callResponse,
           student_nature: applicationData.studentNature,
           student_category: applicationData.studentCategory,
@@ -209,6 +204,13 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
 
       if (error) throw error;
 
+      // Define default values for complex objects
+      const defaultStudentDetails = { fullName: '', mobile: '', whatsapp: '' };
+      const defaultHometownDetails = { area: '', city: '', district: '', state: '' };
+      const defaultCurrentResidence = { area: '', mandal: '', city: '', state: '' };
+      const defaultOtherDetails = { age: 0, qualification: '', profession: '', email: '' };
+      const defaultReferredBy = { fullName: '', mobile: '', studentId: '', batch: '' };
+
       const newApplication: StudentApplication = {
         id: data.id,
         classCode: data.class_code,
@@ -216,11 +218,11 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
         remarks: data.remarks || undefined,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
-        studentDetails: data.student_details,
-        hometownDetails: data.hometown_details,
-        currentResidence: data.current_residence,
-        otherDetails: data.other_details,
-        referredBy: data.referred_by,
+        studentDetails: safeParseJson(data.student_details, defaultStudentDetails),
+        hometownDetails: safeParseJson(data.hometown_details, defaultHometownDetails),
+        currentResidence: safeParseJson(data.current_residence, defaultCurrentResidence),
+        otherDetails: safeParseJson(data.other_details, defaultOtherDetails),
+        referredBy: safeParseJson(data.referred_by, defaultReferredBy),
         callResponse: data.call_response || undefined,
         studentNature: data.student_nature || undefined,
         studentCategory: data.student_category || undefined,
