@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApplications, StudentApplication } from '@/contexts/ApplicationContext';
@@ -26,7 +25,6 @@ const NewApplicationPage: React.FC = () => {
   const { validateApplication, addApplication, classes } = useApplications();
   const navigate = useNavigate();
 
-  // Filter classes based on user access
   const accessibleClasses = user?.role === 'admin' 
     ? classes 
     : classes.filter(cls => user?.classes?.includes(cls.code));
@@ -43,30 +41,24 @@ const NewApplicationPage: React.FC = () => {
     }
 
     try {
-      // Reset previous validation results
       setValidationErrors([]);
       setValidationWarnings([]);
 
-      // Attempt to parse the text
       const parsedApplication = parseApplicationText(rawText, selectedClass);
       
-      // Validate the parsed data
       const validationResult = validateApplication(parsedApplication);
       
       if (!validationResult.valid) {
         setValidationErrors(validationResult.errors);
       }
 
-      // Additional warnings checks
       const warnings: string[] = [];
       
-      // Check age range
       const age = parsedApplication.otherDetails?.age;
       if (age && (age < 25 || age > 45)) {
         warnings.push(`Age (${age}) is outside the recommended range of 25-45 years`);
       }
       
-      // Check qualification
       const qualification = parsedApplication.otherDetails?.qualification || '';
       const graduateKeywords = ['graduate', 'b.', 'bachelor', 'm.', 'master', 'ph.d', 'doctorate'];
       if (!graduateKeywords.some(keyword => qualification.toLowerCase().includes(keyword))) {
@@ -86,7 +78,6 @@ const NewApplicationPage: React.FC = () => {
   };
 
   const parseApplicationText = (text: string, classCode: string): Partial<StudentApplication> => {
-    // Initialize our result object
     const result: Partial<StudentApplication> = {
       classCode,
       status: 'pending',
@@ -121,7 +112,6 @@ const NewApplicationPage: React.FC = () => {
       },
     };
 
-    // Define the sections we expect in the text
     const sections = [
       'STUDENT DETAILS',
       'HOMETOWN DETAILS',
@@ -130,7 +120,6 @@ const NewApplicationPage: React.FC = () => {
       'REFERRED By'
     ];
 
-    // Helper function to extract field value
     const extractField = (line: string): [string, string] => {
       const colonIndex = line.indexOf(':');
       if (colonIndex === -1) {
@@ -141,17 +130,14 @@ const NewApplicationPage: React.FC = () => {
       return [fieldName, fieldValue];
     };
 
-    // Split the text into lines
     const lines = text.split('\n');
     let currentSection = '';
 
     for (const line of lines) {
       const trimmedLine = line.trim();
       
-      // Skip empty lines
       if (!trimmedLine) continue;
       
-      // Check if this line is a section header
       if (sections.some(section => trimmedLine.includes(section))) {
         for (const section of sections) {
           if (trimmedLine.includes(section)) {
@@ -162,10 +148,8 @@ const NewApplicationPage: React.FC = () => {
         continue;
       }
       
-      // Skip lines that are just separators
       if (/^={3,}$|^-{3,}$/.test(trimmedLine)) continue;
       
-      // Parse fields based on the current section
       if (currentSection && trimmedLine.includes(':')) {
         const [fieldName, fieldValue] = extractField(trimmedLine);
         
@@ -248,7 +232,6 @@ const NewApplicationPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Add the application to our system
       const id = addApplication(parsedData as Omit<StudentApplication, 'id' | 'createdAt' | 'updatedAt'>);
       
       toast.success(`Application submitted successfully with ID: ${id}`);
@@ -277,7 +260,6 @@ const NewApplicationPage: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Class Selection */}
             <div className="space-y-2">
               <Label htmlFor="class">Select Class</Label>
               <Select
@@ -297,7 +279,6 @@ const NewApplicationPage: React.FC = () => {
               </Select>
             </div>
 
-            {/* Application Text */}
             <div className="space-y-2">
               <Label htmlFor="application-text">Application Text</Label>
               <Textarea
@@ -321,7 +302,6 @@ const NewApplicationPage: React.FC = () => {
               Parse Application
             </Button>
 
-            {/* Validation Results */}
             {validationErrors.length > 0 && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -337,7 +317,7 @@ const NewApplicationPage: React.FC = () => {
             )}
 
             {validationWarnings.length > 0 && (
-              <Alert variant="warning" className="bg-amber-50 border-amber-200 text-amber-800">
+              <Alert className="bg-amber-50 border-amber-200 text-amber-800">
                 <AlertCircle className="h-4 w-4 text-amber-600" />
                 <AlertTitle>Warnings</AlertTitle>
                 <AlertDescription>
@@ -351,7 +331,6 @@ const NewApplicationPage: React.FC = () => {
               </Alert>
             )}
 
-            {/* Parsed Data Preview */}
             {parsedData && (
               <div className="border rounded-md p-4 bg-muted/30">
                 <h3 className="font-semibold mb-3">Parsed Information Preview</h3>

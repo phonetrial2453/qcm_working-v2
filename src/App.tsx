@@ -19,6 +19,7 @@ import ApplicationsListPage from "./pages/applications/ApplicationsListPage";
 import ApplicationDetailPage from "./pages/applications/ApplicationDetailPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
+import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
 
