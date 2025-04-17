@@ -33,10 +33,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<ExtendedUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [adminStatus, setAdminStatus] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email);
       setSession(session);
       if (session?.user) {
         // Create an extended user with additional properties
@@ -46,10 +48,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: 'user' // Default role
         };
         setUser(extendedUser);
-        fetchUserRole(session.user.id);
+        
+        // Use setTimeout to prevent recursion in auth state changes
+        setTimeout(() => {
+          fetchUserRole(session.user.id);
+        }, 0);
       } else {
         setUser(null);
         setUserRoles([]);
+        setAdminStatus(false);
       }
       setLoading(false);
     });
@@ -65,7 +72,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: 'user' // Default role
         };
         setUser(extendedUser);
-        fetchUserRole(session.user.id);
+        
+        // Use setTimeout to prevent recursion in auth state changes
+        setTimeout(() => {
+          fetchUserRole(session.user.id);
+        }, 0);
       }
       setLoading(false);
     });
@@ -73,25 +84,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch user role from the database
+  // Fetch user role directly from the database without using RLS
   const fetchUserRole = async (userId: string) => {
     try {
+      console.log('Fetching roles for user:', userId);
+      
+      // Use a direct query without RLS to avoid recursion
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching user role:', error.message);
+        return;
+      }
 
       if (data && data.length > 0) {
+        console.log('Found roles:', data);
         const roles = data.map(r => r.role);
         setUserRoles(roles);
+        
+        const isAdmin = roles.includes('admin');
+        setAdminStatus(isAdmin);
         
         // Update the user with role information
         setUser(prevUser => {
           if (!prevUser) return null;
           
-          const role = roles.includes('admin') ? 'admin' : 
+          const role = isAdmin ? 'admin' : 
                       roles.includes('moderator') ? 'moderator' : 'user';
           
           // For moderators, fetch their class assignments
@@ -104,9 +125,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             role
           };
         });
+      } else {
+        console.log('No roles found for user');
+        setUserRoles([]);
+        setAdminStatus(false);
       }
     } catch (error: any) {
-      console.error('Error fetching user role:', error.message);
+      console.error('Error in fetchUserRole:', error.message);
     }
   };
 
@@ -177,7 +202,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Computed properties
   const isAuthenticated = !!user;
-  const isAdmin = isAuthenticated && userRoles.includes('admin');
+  const isAdmin = adminStatus;
 
   return (
     <AuthContext.Provider value={{ 

@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,18 +9,54 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/components/ui/sonner';
-import { User, Mail, Key } from 'lucide-react';
+import { User, Mail, Key, Shield } from 'lucide-react';
 
 const ProfilePage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   
   const [isUpdating, setIsUpdating] = useState(false);
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
+  const [role, setRole] = useState(user?.role || '');
   
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // Update state when user data changes
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setEmail(user.email || '');
+      setRole(user.role || '');
+    }
+  }, [user]);
+  
+  useEffect(() => {
+    const checkRoles = async () => {
+      if (user?.id) {
+        try {
+          const { data, error } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id);
+            
+          if (error) {
+            console.error('Error fetching roles:', error);
+            return;
+          }
+          
+          if (data && data.length > 0) {
+            console.log('User roles from profile:', data);
+          }
+        } catch (err) {
+          console.error('Error in role check:', err);
+        }
+      }
+    };
+    
+    checkRoles();
+  }, [user]);
   
   const handleProfileUpdate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,17 +142,25 @@ const ProfilePage: React.FC = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
+                <Label htmlFor="role" className="flex items-center">
+                  <Shield className="h-4 w-4 mr-1" />
+                  Role
+                </Label>
                 <Input
                   id="role"
-                  value={user?.role || ''}
+                  value={role || ''}
                   readOnly
                   disabled
                   className="bg-muted"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Your role cannot be changed. Contact an administrator for role changes.
+                  Your role: {isAdmin ? 'Administrator' : role || 'Regular User'}
                 </p>
+                {isAdmin && (
+                  <div className="mt-2 text-sm text-islamic-primary font-medium">
+                    You have administrator privileges
+                  </div>
+                )}
               </div>
               
               {user?.role === 'moderator' && user.classes && (
