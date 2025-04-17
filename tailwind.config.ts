@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,15 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Custom theme colors
+				islamic: {
+					primary: '#1D4B44',
+					secondary: '#3A6B35',
+					accent: '#FFC13B',
+					blue: '#1E3D59',
+					light: '#F5F5F5',
+					dark: '#333333',
 				}
 			},
 			borderRadius: {
