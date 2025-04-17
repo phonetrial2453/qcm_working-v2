@@ -18,6 +18,9 @@ import NewApplicationPage from "./pages/applications/NewApplicationPage";
 import ApplicationsListPage from "./pages/applications/ApplicationsListPage";
 import ApplicationDetailPage from "./pages/applications/ApplicationDetailPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import ModeratorManagementPage from "./pages/admin/ModeratorManagementPage";
+import ClassSettingsPage from "./pages/admin/ClassSettingsPage";
+import ReportsPage from "./pages/admin/ReportsPage";
 import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
 
@@ -46,6 +49,9 @@ const App = () => (
                 
                 {/* Admin Routes */}
                 <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/moderators" element={<ModeratorManagementPage />} />
+                <Route path="/admin/classes" element={<ClassSettingsPage />} />
+                <Route path="/admin/reports" element={<ReportsPage />} />
                 
                 {/* 404 Route */}
                 <Route path="*" element={<NotFound />} />
