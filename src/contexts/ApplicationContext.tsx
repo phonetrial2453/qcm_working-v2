@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from '@/components/ui/sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,7 +41,6 @@ export interface StudentApplication {
     studentId: string;
     batch: string;
   };
-  // Additional fields required
   callResponse?: string;
   studentNature?: string;
   studentCategory?: string;
@@ -123,7 +121,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       
       if (error) throw error;
       
-      // Map the database format to our application format with proper type checking
       const mappedApplications: StudentApplication[] = data.map(app => ({
         id: app.id,
         classCode: app.class_code,
@@ -131,12 +128,45 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
         remarks: app.remarks || undefined,
         createdAt: app.created_at,
         updatedAt: app.updated_at,
-        // Type assertions with proper structure validation
-        studentDetails: app.student_details as StudentApplication['studentDetails'],
-        hometownDetails: app.hometown_details as StudentApplication['hometownDetails'],
-        currentResidence: app.current_residence as StudentApplication['currentResidence'],
-        otherDetails: app.other_details as StudentApplication['otherDetails'],
-        referredBy: app.referred_by as StudentApplication['referredBy'],
+        studentDetails: typeof app.student_details === 'object' 
+          ? app.student_details as StudentApplication['studentDetails']
+          : { 
+            fullName: '', 
+            mobile: '', 
+            whatsapp: '' 
+          },
+        hometownDetails: typeof app.hometown_details === 'object'
+          ? app.hometown_details as StudentApplication['hometownDetails']
+          : {
+            area: '',
+            city: '',
+            district: '',
+            state: ''
+          },
+        currentResidence: typeof app.current_residence === 'object'
+          ? app.current_residence as StudentApplication['currentResidence']
+          : {
+            area: '',
+            mandal: '',
+            city: '',
+            state: ''
+          },
+        otherDetails: typeof app.other_details === 'object'
+          ? app.other_details as StudentApplication['otherDetails']
+          : {
+            age: 0,
+            qualification: '',
+            profession: '',
+            email: ''
+          },
+        referredBy: typeof app.referred_by === 'object'
+          ? app.referred_by as StudentApplication['referredBy']
+          : {
+            fullName: '',
+            mobile: '',
+            studentId: '',
+            batch: ''
+          },
         callResponse: app.call_response || undefined,
         studentNature: app.student_nature || undefined,
         studentCategory: app.student_category || undefined,
@@ -210,7 +240,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const updateApplication = async (id: string, updates: Partial<StudentApplication>) => {
     try {
-      // Convert from our application format to the database format
       const dbUpdates: any = {};
       
       if (updates.classCode !== undefined) dbUpdates.class_code = updates.classCode;
@@ -276,7 +305,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   const validateApplication = (application: Partial<StudentApplication>): { valid: boolean; errors: string[] } => {
     const errors: string[] = [];
     
-    // Check mobile number format
     const mobileRegex = /^[6-9]\d{9}$/;
     if (application.studentDetails?.mobile && !mobileRegex.test(application.studentDetails.mobile)) {
       errors.push('Mobile number must be a 10-digit number starting with 6-9');
@@ -286,7 +314,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       errors.push('WhatsApp number must be a 10-digit number starting with 6-9');
     }
     
-    // Check allowed states
     if (application.hometownDetails?.state && 
         !VALIDATION_RULES.allowedStates.includes(application.hometownDetails.state)) {
       errors.push(`Hometown state must be one of: ${VALIDATION_RULES.allowedStates.join(', ')}`);
@@ -297,7 +324,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       errors.push(`Current residence state must be one of: ${VALIDATION_RULES.allowedStates.join(', ')}`);
     }
     
-    // Check age range
     if (application.otherDetails?.age) {
       const age = application.otherDetails.age;
       if (age < VALIDATION_RULES.ageRange.min || age > VALIDATION_RULES.ageRange.max) {
@@ -305,7 +331,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       }
     }
     
-    // Check for reference details
     if (!application.referredBy?.fullName || !application.referredBy?.mobile) {
       errors.push('Referrer name and mobile number are required');
     }

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,24 +41,6 @@ const LoginPage: React.FC = () => {
     } catch (error) {
       console.error('Login error:', error);
       toast.error('An error occurred during login');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDemoLogin = async (role: 'admin' | 'moderator') => {
-    setIsLoading(true);
-    try {
-      const demoEmail = role === 'admin' ? 'admin@example.com' : 'moderator@example.com';
-      const demoPassword = role === 'admin' ? 'adminpass' : 'moderatorpass';
-      
-      const success = await login(demoEmail, demoPassword);
-      if (success) {
-        navigate('/dashboard');
-      }
-    } catch (error) {
-      console.error('Demo login error:', error);
-      toast.error('An error occurred during demo login');
     } finally {
       setIsLoading(false);
     }
@@ -116,34 +99,6 @@ const LoginPage: React.FC = () => {
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <div className="relative w-full">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Demo Login</span>
-              </div>
-            </div>
-            <div className="flex gap-2 w-full">
-              <Button
-                variant="outline"
-                className="flex-1 border-islamic-accent text-islamic-accent hover:text-islamic-accent hover:bg-islamic-accent/10"
-                onClick={() => handleDemoLogin('admin')}
-                disabled={isLoading}
-              >
-                Admin Demo
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1 border-islamic-secondary text-islamic-secondary hover:text-islamic-secondary hover:bg-islamic-secondary/10"
-                onClick={() => handleDemoLogin('moderator')}
-                disabled={isLoading}
-              >
-                Moderator Demo
-              </Button>
-            </div>
-          </CardFooter>
         </Card>
       </div>
     </div>
