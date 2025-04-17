@@ -4,39 +4,126 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 
+// Extended User type to include additional properties
+export interface ExtendedUser extends User {
+  name?: string;
+  role?: string;
+  classes?: string[];
+}
+
 interface AuthContextType {
   session: Session | null;
-  user: User | null;
+  user: ExtendedUser | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
+  signOut: (redirectTo?: string) => Promise<void>;
   loading: boolean;
+  // Computed properties
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+  // Alias for more readable code
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: (redirectTo?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<ExtendedUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
 
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      if (session?.user) {
+        // Create an extended user with additional properties
+        const extendedUser: ExtendedUser = {
+          ...session.user,
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+          role: 'user' // Default role
+        };
+        setUser(extendedUser);
+        fetchUserRole(session.user.id);
+      } else {
+        setUser(null);
+        setUserRoles([]);
+      }
       setLoading(false);
     });
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      if (session?.user) {
+        // Create an extended user with additional properties
+        const extendedUser: ExtendedUser = {
+          ...session.user,
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+          role: 'user' // Default role
+        };
+        setUser(extendedUser);
+        fetchUserRole(session.user.id);
+      }
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Fetch user role from the database
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const roles = data.map(r => r.role);
+        setUserRoles(roles);
+        
+        // Update the user with role information
+        setUser(prevUser => {
+          if (!prevUser) return null;
+          
+          const role = roles.includes('admin') ? 'admin' : 
+                      roles.includes('moderator') ? 'moderator' : 'user';
+          
+          // For moderators, fetch their class assignments
+          if (role === 'moderator') {
+            fetchModeratorClasses(userId);
+          }
+          
+          return {
+            ...prevUser,
+            role
+          };
+        });
+      }
+    } catch (error: any) {
+      console.error('Error fetching user role:', error.message);
+    }
+  };
+
+  // Fetch moderator class assignments (in a real app, this would come from a database)
+  const fetchModeratorClasses = async (userId: string) => {
+    // This is a placeholder - in a real app, you would fetch from the database
+    // For now, we'll assign some mock classes to all moderators
+    const mockClasses = ['QRAN', 'SRAT'];
+    
+    setUser(prevUser => {
+      if (!prevUser) return null;
+      return {
+        ...prevUser,
+        classes: mockClasses
+      };
+    });
+  };
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -46,6 +133,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       toast.error(error.message || 'Error signing in');
       throw error;
+    }
+  };
+
+  // Alias for signIn with a boolean return value for the LoginPage
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      await signIn(email, password);
+      return true;
+    } catch (error) {
+      return false;
     }
   };
 
@@ -60,19 +157,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signOut = async () => {
+  const signOut = async (redirectTo?: string) => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       toast.success('Successfully signed out');
+      
+      if (redirectTo) {
+        window.location.href = redirectTo;
+      }
     } catch (error: any) {
       toast.error(error.message || 'Error signing out');
       throw error;
     }
   };
 
+  // Alias for signOut
+  const logout = signOut;
+
+  // Computed properties
+  const isAuthenticated = !!user;
+  const isAdmin = isAuthenticated && userRoles.includes('admin');
+
   return (
-    <AuthContext.Provider value={{ session, user, signIn, signUp, signOut, loading }}>
+    <AuthContext.Provider value={{ 
+      session, 
+      user, 
+      signIn, 
+      signUp, 
+      signOut, 
+      loading,
+      isAuthenticated,
+      isAdmin,
+      login,
+      logout
+    }}>
       {children}
     </AuthContext.Provider>
   );

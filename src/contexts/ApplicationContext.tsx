@@ -49,89 +49,6 @@ export interface StudentApplication {
   naqeebResponse?: string;
 }
 
-// Sample application data for demonstration
-const MOCK_APPLICATIONS: StudentApplication[] = [
-  {
-    id: 'QRAN0001',
-    classCode: 'QRAN',
-    status: 'approved',
-    remarks: 'Meets all criteria',
-    createdAt: '2023-04-15T10:30:00Z',
-    updatedAt: '2023-04-16T14:20:00Z',
-    studentDetails: {
-      fullName: 'Abdullah Khan',
-      mobile: '9876543210',
-      whatsapp: '9876543210',
-    },
-    hometownDetails: {
-      area: 'Royapettah',
-      city: 'Chennai',
-      district: 'Chennai',
-      state: 'Tamil Nadu',
-    },
-    currentResidence: {
-      area: 'Royapettah',
-      mandal: 'Central',
-      city: 'Chennai',
-      state: 'Tamil Nadu',
-    },
-    otherDetails: {
-      age: 32,
-      qualification: 'B.E. Computer Science',
-      profession: 'Software Engineer',
-      email: 'abdullah@example.com',
-    },
-    referredBy: {
-      fullName: 'Mohammed Ibrahim',
-      mobile: '8765432109',
-      studentId: 'QRAN0567',
-      batch: 'QRAN',
-    },
-    callResponse: 'Interested',
-    studentNature: 'Serious',
-    studentCategory: 'Professional',
-    followUpBy: 'Ahmed',
-    naqeeb: 'Umar',
-    naqeebResponse: 'Accepted',
-  },
-  {
-    id: 'SRAT0001',
-    classCode: 'SRAT',
-    status: 'pending',
-    createdAt: '2023-04-17T09:15:00Z',
-    updatedAt: '2023-04-17T09:15:00Z',
-    studentDetails: {
-      fullName: 'Fatima Zahra',
-      mobile: '8765432109',
-      whatsapp: '8765432109',
-    },
-    hometownDetails: {
-      area: 'Abids',
-      city: 'Hyderabad',
-      district: 'Hyderabad',
-      state: 'Telangana',
-    },
-    currentResidence: {
-      area: 'Abids',
-      mandal: 'Hyderabad Central',
-      city: 'Hyderabad',
-      state: 'Telangana',
-    },
-    otherDetails: {
-      age: 28,
-      qualification: 'M.A. Islamic Studies',
-      profession: 'Teacher',
-      email: 'fatima@example.com',
-    },
-    referredBy: {
-      fullName: 'Ayesha Siddiqui',
-      mobile: '7654321098',
-      studentId: 'SRAT0342',
-      batch: 'SRAT',
-    },
-  },
-];
-
 // Define classes
 export interface ClassInfo {
   code: string;
@@ -204,14 +121,28 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       
       if (error) throw error;
       
-      setApplications(data.map(app => ({
-        ...app,
-        studentDetails: app.student_details,
-        hometownDetails: app.hometown_details,
-        currentResidence: app.current_residence,
-        otherDetails: app.other_details,
-        referredBy: app.referred_by,
-      })));
+      // Map the database format to our application format
+      const mappedApplications: StudentApplication[] = data.map(app => ({
+        id: app.id,
+        classCode: app.class_code,
+        status: app.status as 'pending' | 'approved' | 'rejected',
+        remarks: app.remarks || undefined,
+        createdAt: app.created_at,
+        updatedAt: app.updated_at,
+        studentDetails: app.student_details as StudentApplication['studentDetails'],
+        hometownDetails: app.hometown_details as StudentApplication['hometownDetails'],
+        currentResidence: app.current_residence as StudentApplication['currentResidence'],
+        otherDetails: app.other_details as StudentApplication['otherDetails'],
+        referredBy: app.referred_by as StudentApplication['referredBy'],
+        callResponse: app.call_response || undefined,
+        studentNature: app.student_nature || undefined,
+        studentCategory: app.student_category || undefined,
+        followUpBy: app.followup_by || undefined,
+        naqeeb: app.naqeeb || undefined,
+        naqeebResponse: app.naqeeb_response || undefined
+      }));
+      
+      setApplications(mappedApplications);
     } catch (error: any) {
       toast.error('Error fetching applications: ' + error.message);
     }
@@ -245,11 +176,24 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
 
       if (error) throw error;
 
-      const newApplication = {
-        ...applicationData,
+      const newApplication: StudentApplication = {
         id: data.id,
+        classCode: data.class_code,
+        status: data.status as 'pending' | 'approved' | 'rejected',
+        remarks: data.remarks || undefined,
         createdAt: data.created_at,
-        updatedAt: data.updated_at
+        updatedAt: data.updated_at,
+        studentDetails: data.student_details,
+        hometownDetails: data.hometown_details,
+        currentResidence: data.current_residence,
+        otherDetails: data.other_details,
+        referredBy: data.referred_by,
+        callResponse: data.call_response || undefined,
+        studentNature: data.student_nature || undefined,
+        studentCategory: data.student_category || undefined,
+        followUpBy: data.followup_by || undefined,
+        naqeeb: data.naqeeb || undefined,
+        naqeebResponse: data.naqeeb_response || undefined
       };
 
       setApplications(prev => [...prev, newApplication]);
@@ -263,24 +207,27 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const updateApplication = async (id: string, updates: Partial<StudentApplication>) => {
     try {
+      // Convert from our application format to the database format
+      const dbUpdates: any = {};
+      
+      if (updates.classCode !== undefined) dbUpdates.class_code = updates.classCode;
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
+      if (updates.remarks !== undefined) dbUpdates.remarks = updates.remarks;
+      if (updates.studentDetails !== undefined) dbUpdates.student_details = updates.studentDetails;
+      if (updates.hometownDetails !== undefined) dbUpdates.hometown_details = updates.hometownDetails;
+      if (updates.currentResidence !== undefined) dbUpdates.current_residence = updates.currentResidence;
+      if (updates.otherDetails !== undefined) dbUpdates.other_details = updates.otherDetails;
+      if (updates.referredBy !== undefined) dbUpdates.referred_by = updates.referredBy;
+      if (updates.callResponse !== undefined) dbUpdates.call_response = updates.callResponse;
+      if (updates.studentNature !== undefined) dbUpdates.student_nature = updates.studentNature;
+      if (updates.studentCategory !== undefined) dbUpdates.student_category = updates.studentCategory;
+      if (updates.followUpBy !== undefined) dbUpdates.followup_by = updates.followUpBy;
+      if (updates.naqeeb !== undefined) dbUpdates.naqeeb = updates.naqeeb;
+      if (updates.naqeebResponse !== undefined) dbUpdates.naqeeb_response = updates.naqeebResponse;
+
       const { error } = await supabase
         .from('applications')
-        .update({
-          class_code: updates.classCode,
-          status: updates.status,
-          remarks: updates.remarks,
-          student_details: updates.studentDetails,
-          hometown_details: updates.hometownDetails,
-          current_residence: updates.currentResidence,
-          other_details: updates.otherDetails,
-          referred_by: updates.referredBy,
-          call_response: updates.callResponse,
-          student_nature: updates.studentNature,
-          student_category: updates.studentCategory,
-          followup_by: updates.followUpBy,
-          naqeeb: updates.naqeeb,
-          naqeeb_response: updates.naqeebResponse
-        })
+        .update(dbUpdates)
         .eq('id', id);
 
       if (error) throw error;
