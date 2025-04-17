@@ -29,7 +29,7 @@ const ApplicationsListPage: React.FC = () => {
   const [filteredApplications, setFilteredApplications] = useState(applications);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [classFilter, setClassFilter] = useState('');
+  const [classFilter, setClassFilter] = useState('all'); // Changed from empty string to 'all'
   
   // Get class code from URL if provided
   useEffect(() => {
@@ -50,7 +50,7 @@ const ApplicationsListPage: React.FC = () => {
     }
     
     // Apply class filter
-    if (classFilter) {
+    if (classFilter && classFilter !== 'all') { // Changed condition to check for 'all'
       filtered = filtered.filter(app => app.classCode === classFilter);
     }
     
@@ -172,7 +172,7 @@ const ApplicationsListPage: React.FC = () => {
                   <SelectValue placeholder="Filter by class" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Classes</SelectItem>
+                  <SelectItem value="all">All Classes</SelectItem>
                   {accessibleClasses.map(cls => (
                     <SelectItem key={cls.code} value={cls.code}>
                       {cls.name} ({cls.code})
