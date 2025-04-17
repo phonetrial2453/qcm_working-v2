@@ -21,6 +21,13 @@ const AppHeader: React.FC = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
+  // Handle logout with event parameter
+  const handleLogout = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    logout();
+    setMobileMenuOpen(false);
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-islamic-primary shadow-md">
       <div className="container flex h-16 items-center justify-between">
@@ -73,7 +80,7 @@ const AppHeader: React.FC = () => {
                   <Link to="/profile" className="cursor-pointer">Profile Settings</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer text-destructive" onClick={logout}>
+                <DropdownMenuItem className="cursor-pointer text-destructive" onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
@@ -154,10 +161,7 @@ const AppHeader: React.FC = () => {
                 </div>
                 <button
                   className="block w-full px-3 py-2 text-left text-white hover:bg-islamic-accent/20 border-t border-islamic-accent/20"
-                  onClick={() => {
-                    logout();
-                    setMobileMenuOpen(false);
-                  }}
+                  onClick={handleLogout}
                 >
                   <div className="flex items-center">
                     <LogOut className="mr-2 h-4 w-4" />

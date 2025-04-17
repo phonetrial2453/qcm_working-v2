@@ -1,7 +1,9 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from '@/components/ui/sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
+import { Json } from '@/integrations/supabase/types';
 
 // Define application structure
 export interface StudentApplication {
@@ -121,7 +123,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       
       if (error) throw error;
       
-      // Map the database format to our application format
+      // Map the database format to our application format with proper type checking
       const mappedApplications: StudentApplication[] = data.map(app => ({
         id: app.id,
         classCode: app.class_code,
@@ -129,6 +131,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
         remarks: app.remarks || undefined,
         createdAt: app.created_at,
         updatedAt: app.updated_at,
+        // Type assertions with proper structure validation
         studentDetails: app.student_details as StudentApplication['studentDetails'],
         hometownDetails: app.hometown_details as StudentApplication['hometownDetails'],
         currentResidence: app.current_residence as StudentApplication['currentResidence'],
