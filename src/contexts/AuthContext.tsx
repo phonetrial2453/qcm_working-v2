@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -88,22 +89,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Fetching roles for user:', userId);
       
-      // Use the REST API with the service role key to bypass RLS
-      // Instead of using the user_roles table directly, we'll use a function
+      // Use the function with explicit typing for the response
       const { data, error } = await supabase
-        .rpc('get_user_roles', { user_id: userId });
+        .rpc('get_user_roles', { user_id: userId }) as { 
+          data: string[] | null; 
+          error: any;
+        };
 
       if (error) {
         console.error('Error fetching user roles:', error.message);
         return;
       }
 
-      if (data && data.length > 0) {
+      if (data && Array.isArray(data) && data.length > 0) {
         console.log('Found roles:', data);
-        const roles = data;
-        setUserRoles(roles);
+        setUserRoles(data);
         
-        const isAdmin = roles.includes('admin');
+        const isAdmin = data.includes('admin');
         setAdminStatus(isAdmin);
         
         // Update the user with role information
@@ -111,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!prevUser) return null;
           
           const role = isAdmin ? 'admin' : 
-                      roles.includes('moderator') ? 'moderator' : 'user';
+                      data.includes('moderator') ? 'moderator' : 'user';
           
           // For moderators, fetch their class assignments
           if (role === 'moderator') {
