@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -84,30 +83,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch user role using a direct SQL query without RLS
+  // Fetch user roles directly from the database
   const fetchUserRole = async (userId: string) => {
     try {
       console.log('Fetching roles for user:', userId);
       
-      // Use the function but handle the typing issue by using a generic type
-      const { data, error } = await supabase
-        .rpc('get_user_roles', { user_id: userId }, { 
-          count: 'exact',
-        }) as unknown as { 
-          data: string[] | null; 
-          error: any;
-        };
+      // Query user_roles table directly instead of using RPC
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
 
-      if (error) {
-        console.error('Error fetching user roles:', error.message);
+      if (roleError) {
+        console.error('Error fetching user roles:', roleError.message);
         return;
       }
 
-      if (data && Array.isArray(data) && data.length > 0) {
-        console.log('Found roles:', data);
-        setUserRoles(data);
+      if (roleData && Array.isArray(roleData) && roleData.length > 0) {
+        // Extract role strings from the returned objects
+        const roles = roleData.map(r => r.role);
+        console.log('Found roles:', roles);
+        setUserRoles(roles);
         
-        const isAdmin = data.includes('admin');
+        const isAdmin = roles.includes('admin');
         setAdminStatus(isAdmin);
         
         // Update the user with role information
@@ -115,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!prevUser) return null;
           
           const role = isAdmin ? 'admin' : 
-                      data.includes('moderator') ? 'moderator' : 'user';
+                      roles.includes('moderator') ? 'moderator' : 'user';
           
           // For moderators, fetch their class assignments
           if (role === 'moderator') {

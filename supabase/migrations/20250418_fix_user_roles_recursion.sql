@@ -17,3 +17,20 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Ensure the function has the correct permissions
 GRANT EXECUTE ON FUNCTION public.get_user_roles TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_user_roles TO anon;
+
+-- Create a function with the name "has_role" that TypeScript expects
+CREATE OR REPLACE FUNCTION public.has_role(user_id UUID, role_name TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.user_roles
+    WHERE user_id = $1
+    AND role = role_name::app_role
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Ensure the function has the correct permissions
+GRANT EXECUTE ON FUNCTION public.has_role TO authenticated;
+GRANT EXECUTE ON FUNCTION public.has_role TO anon;
