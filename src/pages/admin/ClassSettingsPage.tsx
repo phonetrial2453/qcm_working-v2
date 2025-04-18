@@ -11,44 +11,136 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from '@/components/ui/sonner';
 import { useApplications } from '@/contexts/ApplicationContext';
 import { PlusCircle, Edit, Trash2, Save, X, FileText, Download, Settings } from 'lucide-react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { 
+  Form, 
+  FormControl, 
+  FormDescription, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from '@/components/ui/form';
+
+// Define the class schema with validation
+const classSchema = z.object({
+  code: z.string().min(2).max(5).regex(/^[A-Z0-9]{2,5}$/, {
+    message: "Code must be 2-5 uppercase letters/numbers"
+  }),
+  name: z.string().min(2, {
+    message: "Name must be at least 2 characters"
+  }),
+  description: z.string().optional(),
+  validationRules: z.object({
+    ageRange: z.object({
+      min: z.number().min(0).max(100),
+      max: z.number().min(1).max(120)
+    }),
+    allowedStates: z.array(z.string()).min(1, {
+      message: "At least one state must be selected"
+    }),
+    minimumQualification: z.string().optional()
+  })
+});
+
+type ClassFormValues = z.infer<typeof classSchema>;
+
+interface ClassInfo {
+  id?: string;
+  code: string;
+  name: string;
+  description: string | null;
+  validation_rules?: {
+    ageRange: {
+      min: number;
+      max: number;
+    };
+    allowedStates: string[];
+    minimumQualification: string;
+  };
+  created_at?: string;
+  updated_at?: string;
+}
 
 const ClassSettingsPage: React.FC = () => {
-  const { classes: initialClasses, VALIDATION_RULES } = useApplications();
-  const [classes, setClasses] = useState([...initialClasses]); // Create a mutable copy
-  const [editingClass, setEditingClass] = useState<any>(null);
-  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+  const { VALIDATION_RULES } = useApplications();
+  const [classes, setClasses] = useState<ClassInfo[]>([]);
+  const [editingClass, setEditingClass] = useState<ClassInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   
-  // In a real implementation, this would fetch from Supabase
-  useEffect(() => {
-    const fetchClassesFromSupabase = async () => {
-      try {
-        // This would be replaced with a real Supabase query
-        // const { data, error } = await supabase.from('classes').select('*');
-        console.log('Would fetch classes from Supabase here');
-      } catch (error) {
-        console.error('Error fetching classes:', error);
-        toast.error('Failed to load classes');
-      }
-    };
-    
-    fetchClassesFromSupabase();
-  }, []);
-  
-  const handleEditClass = (classInfo: any) => {
-    setEditingClass({
-      ...classInfo,
+  const form = useForm<ClassFormValues>({
+    resolver: zodResolver(classSchema),
+    defaultValues: {
+      code: '',
+      name: '',
+      description: '',
       validationRules: {
         ageRange: { ...VALIDATION_RULES.ageRange },
         allowedStates: [...VALIDATION_RULES.allowedStates],
         minimumQualification: VALIDATION_RULES.minimumQualification,
       }
+    }
+  });
+
+  // Fetch classes from Supabase
+  const fetchClasses = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .order('code');
+
+      if (error) throw error;
+      
+      const formattedClasses = data.map(cls => ({
+        id: cls.id,
+        code: cls.code,
+        name: cls.name,
+        description: cls.description,
+        validation_rules: cls.validation_rules || {
+          ageRange: { ...VALIDATION_RULES.ageRange },
+          allowedStates: [...VALIDATION_RULES.allowedStates],
+          minimumQualification: VALIDATION_RULES.minimumQualification,
+        },
+        created_at: cls.created_at,
+        updated_at: cls.updated_at
+      }));
+      
+      setClasses(formattedClasses);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+      toast.error('Failed to load classes');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchClasses();
+  }, []);
+  
+  const handleEditClass = (classInfo: ClassInfo) => {
+    setEditingClass(classInfo);
+    form.reset({
+      code: classInfo.code,
+      name: classInfo.name,
+      description: classInfo.description || '',
+      validationRules: classInfo.validation_rules || {
+        ageRange: { ...VALIDATION_RULES.ageRange },
+        allowedStates: [...VALIDATION_RULES.allowedStates],
+        minimumQualification: VALIDATION_RULES.minimumQualification,
+      }
     });
-    setFormErrors({});
+    setDialogOpen(true);
   };
   
   const handleAddNewClass = () => {
-    setEditingClass({
-      isNew: true,
+    setEditingClass(null);
+    form.reset({
       code: '',
       name: '',
       description: '',
@@ -58,88 +150,90 @@ const ClassSettingsPage: React.FC = () => {
         minimumQualification: VALIDATION_RULES.minimumQualification,
       }
     });
-    setFormErrors({});
+    setDialogOpen(true);
   };
   
-  const validateForm = () => {
-    const errors: { [key: string]: string } = {};
-    
-    if (!editingClass.code.trim()) {
-      errors.code = 'Class code is required';
-    } else if (!/^[A-Z0-9]{3,5}$/.test(editingClass.code)) {
-      errors.code = 'Code must be 3-5 uppercase letters/numbers';
-    }
-    
-    if (!editingClass.name.trim()) {
-      errors.name = 'Class name is required';
-    }
-    
-    if (editingClass.validationRules.ageRange.min >= editingClass.validationRules.ageRange.max) {
-      errors.ageRange = 'Maximum age must be greater than minimum age';
-    }
-    
-    if (editingClass.validationRules.allowedStates.length === 0) {
-      errors.states = 'At least one state must be selected';
-    }
-    
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-  
-  const handleSaveClass = async () => {
-    if (!validateForm()) {
-      toast.error('Please fix the errors before saving');
-      return;
-    }
-    
+  const onSubmit = async (values: ClassFormValues) => {
+    setIsLoading(true);
     try {
-      if (editingClass.isNew) {
+      if (editingClass) {
+        // Update existing class
+        const { error } = await supabase
+          .from('classes')
+          .update({
+            name: values.name,
+            description: values.description,
+            validation_rules: values.validationRules,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editingClass.id);
+          
+        if (error) throw error;
+        toast.success(`Class ${values.name} updated successfully`);
+      } else {
         // Check if class code already exists
-        if (classes.some(c => c.code === editingClass.code)) {
-          setFormErrors(prev => ({ ...prev, code: 'This class code already exists' }));
+        const { data: existingClass } = await supabase
+          .from('classes')
+          .select('code')
+          .eq('code', values.code)
+          .single();
+          
+        if (existingClass) {
+          form.setError('code', { 
+            type: 'manual',
+            message: 'This class code already exists' 
+          });
+          setIsLoading(false);
           return;
         }
         
-        // In a real app, this would create a new class in Supabase
-        setClasses(prev => [...prev, {
-          code: editingClass.code,
-          name: editingClass.name,
-          description: editingClass.description,
-        }]);
-        
-        toast.success(`Class ${editingClass.name} created successfully`);
-      } else {
-        // In a real app, this would update an existing class in Supabase
-        setClasses(prev => prev.map(c => 
-          c.code === editingClass.code 
-            ? { 
-                code: editingClass.code, 
-                name: editingClass.name, 
-                description: editingClass.description 
-              }
-            : c
-        ));
-        
-        toast.success(`Class ${editingClass.name} updated successfully`);
+        // Create new class
+        const { error } = await supabase
+          .from('classes')
+          .insert({
+            code: values.code,
+            name: values.name,
+            description: values.description,
+            validation_rules: values.validationRules
+          });
+          
+        if (error) throw error;
+        toast.success(`Class ${values.name} created successfully`);
       }
       
-      setEditingClass(null);
-    } catch (error) {
+      // Refresh the class list
+      fetchClasses();
+      setDialogOpen(false);
+    } catch (error: any) {
       console.error('Error saving class:', error);
-      toast.error('Failed to save class');
+      toast.error(`Failed to save class: ${error.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
   
-  const handleDeleteClass = async (classCode: string) => {
-    // In a real app, this would delete the class from Supabase
-    // and handle related applications
+  const handleDeleteClass = async (classId: string) => {
+    if (!confirm('Are you sure you want to delete this class? This action cannot be undone.')) {
+      return;
+    }
     
+    setIsLoading(true);
     try {
-      setClasses(prev => prev.filter(c => c.code !== classCode));
+      const { error } = await supabase
+        .from('classes')
+        .delete()
+        .eq('id', classId);
+        
+      if (error) throw error;
+      
+      // Refresh the class list
+      fetchClasses();
       toast.success('Class deleted successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting class:', error);
-      toast.error('Failed to delete class');
+      toast.error(`Failed to delete class: ${error.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -163,6 +257,7 @@ const ClassSettingsPage: React.FC = () => {
           <Button 
             className="bg-islamic-primary hover:bg-islamic-primary/90"
             onClick={handleAddNewClass}
+            disabled={isLoading}
           >
             <PlusCircle className="mr-2 h-4 w-4" />
             Add New Class
@@ -177,233 +272,259 @@ const ClassSettingsPage: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {classes.map(classInfo => (
-                    <TableRow key={classInfo.code}>
-                      <TableCell className="font-medium">{classInfo.code}</TableCell>
-                      <TableCell>{classInfo.name}</TableCell>
-                      <TableCell className="max-w-xs truncate">{classInfo.description}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            className="h-8 w-8"
-                            onClick={() => handleEditClass(classInfo)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            className="h-8 w-8"
-                            onClick={() => handleExportClassTemplate(classInfo.code)}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            className="h-8 w-8 text-red-500 hover:text-red-600"
-                            onClick={() => handleDeleteClass(classInfo.code)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {classes.length === 0 && (
+            {isLoading ? (
+              <div className="flex justify-center p-6">
+                <p>Loading classes...</p>
+              </div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
-                        No classes configured. Add your first class.
-                      </TableCell>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {classes.length > 0 ? (
+                      classes.map(classInfo => (
+                        <TableRow key={classInfo.id}>
+                          <TableCell className="font-medium">{classInfo.code}</TableCell>
+                          <TableCell>{classInfo.name}</TableCell>
+                          <TableCell className="max-w-xs truncate">{classInfo.description}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                className="h-8 w-8"
+                                onClick={() => handleEditClass(classInfo)}
+                                disabled={isLoading}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                className="h-8 w-8"
+                                onClick={() => handleExportClassTemplate(classInfo.code)}
+                                disabled={isLoading}
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                className="h-8 w-8 text-red-500 hover:text-red-600"
+                                onClick={() => handleDeleteClass(classInfo.id || '')}
+                                disabled={isLoading}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                          No classes configured. Add your first class.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
         
-        {editingClass && (
-          <Dialog open={!!editingClass} onOpenChange={(open) => !open && setEditingClass(null)}>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingClass.isNew ? 'Add New Class' : `Edit Class: ${editingClass.name}`}
-                </DialogTitle>
-                <DialogDescription>
-                  Configure class details and validation rules
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <label className="text-right text-sm font-medium">Code:</label>
-                  <div className="col-span-3">
-                    <Input
-                      value={editingClass.code}
-                      onChange={(e) => setEditingClass({ ...editingClass, code: e.target.value.toUpperCase() })}
-                      disabled={!editingClass.isNew}
-                      placeholder="e.g., QRAN"
-                      maxLength={5}
-                    />
-                    {formErrors.code && (
-                      <p className="text-red-500 text-xs mt-1">{formErrors.code}</p>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <label className="text-right text-sm font-medium">Name:</label>
-                  <div className="col-span-3">
-                    <Input
-                      value={editingClass.name}
-                      onChange={(e) => setEditingClass({ ...editingClass, name: e.target.value })}
-                      placeholder="e.g., Quran Studies"
-                    />
-                    {formErrors.name && (
-                      <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-4 items-start gap-4">
-                  <label className="text-right text-sm font-medium pt-2">Description:</label>
-                  <div className="col-span-3">
-                    <Textarea
-                      value={editingClass.description}
-                      onChange={(e) => setEditingClass({ ...editingClass, description: e.target.value })}
-                      placeholder="Brief description of the class"
-                      rows={3}
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <label className="text-right text-sm font-medium">Age Range:</label>
-                  <div className="col-span-3 flex items-center gap-2">
-                    <Input
-                      type="number"
-                      value={editingClass.validationRules.ageRange.min}
-                      onChange={(e) => setEditingClass({
-                        ...editingClass,
-                        validationRules: {
-                          ...editingClass.validationRules,
-                          ageRange: {
-                            ...editingClass.validationRules.ageRange,
-                            min: parseInt(e.target.value) || 0
-                          }
-                        }
-                      })}
-                      min={0}
-                      max={100}
-                      className="w-20"
-                    />
-                    <span>to</span>
-                    <Input
-                      type="number"
-                      value={editingClass.validationRules.ageRange.max}
-                      onChange={(e) => setEditingClass({
-                        ...editingClass,
-                        validationRules: {
-                          ...editingClass.validationRules,
-                          ageRange: {
-                            ...editingClass.validationRules.ageRange,
-                            max: parseInt(e.target.value) || 0
-                          }
-                        }
-                      })}
-                      min={0}
-                      max={100}
-                      className="w-20"
-                    />
-                    <span>years</span>
-                  </div>
-                  {formErrors.ageRange && (
-                    <div className="col-span-3 col-start-2">
-                      <p className="text-red-500 text-xs mt-1">{formErrors.ageRange}</p>
-                    </div>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="sm:max-w-[600px] bg-background">
+            <DialogHeader>
+              <DialogTitle>
+                {editingClass ? `Edit Class: ${editingClass.name}` : 'Add New Class'}
+              </DialogTitle>
+              <DialogDescription>
+                Configure class details and validation rules
+              </DialogDescription>
+            </DialogHeader>
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Code</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          placeholder="e.g., QRAN" 
+                          maxLength={5}
+                          disabled={!!editingClass}
+                          onChange={e => field.onChange(e.target.value.toUpperCase())}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        A unique 2-5 character code for the class (uppercase letters and numbers only)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </div>
+                />
                 
-                <div className="grid grid-cols-4 items-start gap-4">
-                  <label className="text-right text-sm font-medium pt-2">Allowed States:</label>
-                  <div className="col-span-3">
-                    <div className="flex flex-wrap gap-2">
-                      {['Tamil Nadu', 'Telangana', 'Andhra Pradesh', 'Karnataka', 'Kerala'].map(state => (
-                        <Button
-                          key={state}
-                          type="button"
-                          variant={editingClass.validationRules.allowedStates.includes(state) ? "default" : "outline"}
-                          onClick={() => {
-                            const states = editingClass.validationRules.allowedStates.includes(state)
-                              ? editingClass.validationRules.allowedStates.filter((s: string) => s !== state)
-                              : [...editingClass.validationRules.allowedStates, state];
-                            
-                            setEditingClass({
-                              ...editingClass,
-                              validationRules: {
-                                ...editingClass.validationRules,
-                                allowedStates: states
-                              }
-                            });
-                          }}
-                          className={editingClass.validationRules.allowedStates.includes(state) ? "bg-islamic-primary" : ""}
-                        >
-                          {state}
-                        </Button>
-                      ))}
-                    </div>
-                    {formErrors.states && (
-                      <p className="text-red-500 text-xs mt-1">{formErrors.states}</p>
-                    )}
-                  </div>
-                </div>
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., Quran Studies" />
+                      </FormControl>
+                      <FormDescription>
+                        The full name of the class
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <label className="text-right text-sm font-medium">Min. Qualification:</label>
-                  <div className="col-span-3">
-                    <Input
-                      value={editingClass.validationRules.minimumQualification}
-                      onChange={(e) => setEditingClass({
-                        ...editingClass,
-                        validationRules: {
-                          ...editingClass.validationRules,
-                          minimumQualification: e.target.value
-                        }
-                      })}
-                      placeholder="e.g., Graduate"
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          {...field}
+                          placeholder="Brief description of the class"
+                          rows={3}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="space-y-4">
+                  <h3 className="text-md font-medium">Validation Rules</h3>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="validationRules.ageRange.min"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Minimum Age</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              {...field}
+                              onChange={e => field.onChange(parseInt(e.target.value) || 0)} 
+                              min={0}
+                              max={100}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="validationRules.ageRange.max"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Maximum Age</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              {...field}
+                              onChange={e => field.onChange(parseInt(e.target.value) || 0)} 
+                              min={0}
+                              max={120}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="validationRules.minimumQualification"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Minimum Qualification</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="e.g., Graduate" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="validationRules.allowedStates"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Allowed States</FormLabel>
+                        <div className="flex flex-wrap gap-2">
+                          {['Tamil Nadu', 'Telangana', 'Andhra Pradesh', 'Karnataka', 'Kerala', 'Delhi', 'Maharashtra', 'Gujarat'].map(state => (
+                            <Button
+                              key={state}
+                              type="button"
+                              variant={field.value.includes(state) ? "default" : "outline"}
+                              onClick={() => {
+                                const updatedStates = field.value.includes(state)
+                                  ? field.value.filter(s => s !== state)
+                                  : [...field.value, state];
+                                field.onChange(updatedStates);
+                              }}
+                              className={field.value.includes(state) ? "bg-islamic-primary" : ""}
+                            >
+                              {state}
+                            </Button>
+                          ))}
+                        </div>
+                        <FormDescription>
+                          Select states where students can apply from
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-              </div>
-              
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setEditingClass(null)}>
-                  Cancel
-                </Button>
-                <Button
-                  className="bg-islamic-primary hover:bg-islamic-primary/90"
-                  onClick={handleSaveClass}
-                >
-                  {editingClass.isNew ? 'Create Class' : 'Save Changes'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
+                
+                <DialogFooter>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setDialogOpen(false)}
+                    disabled={isLoading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-islamic-primary hover:bg-islamic-primary/90"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Saving...' : (editingClass ? 'Save Changes' : 'Create Class')}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

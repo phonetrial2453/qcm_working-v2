@@ -1,177 +1,131 @@
-
-import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useApplications } from '@/contexts/ApplicationContext';
-import AppLayout from '@/components/layout/AppLayout';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { PlusCircle, FileText, CheckCircle, XCircle, ClipboardList } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import AppLayout from '@/components/layout/AppLayout';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { User, ShieldCheck, Settings, BookOpenCheck } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { user, isAdmin } = useAuth();
-  const { applications, classes } = useApplications();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [userRoles, setUserRoles] = useState<string[]>([]);
 
-  // Debug user roles
   useEffect(() => {
-    const debugUserRoles = async () => {
-      if (user?.id) {
-        console.log('Debugging user roles for:', user.id);
-        console.log('Current user object:', user);
-        console.log('isAdmin status:', isAdmin);
-        
-        try {
-          // Use the function with correct typing
-          const { data, error } = await supabase
-            .rpc('get_user_roles', { user_id: user.id }, {
-              count: 'exact',
-            }) as unknown as {
-              data: string[] | null;
-              error: any;
-            };
-            
-          if (error) {
-            console.error('Error calling get_user_roles:', error);
-          } else {
-            console.log('Roles from get_user_roles:', data);
-          }
-        } catch (err) {
-          console.error('Exception in debugUserRoles:', err);
-        }
-      }
-    };
+    fetchUserRoles();
+  }, [user]);
+
+  // Replace the rpc('get_user_roles') call with a direct query to user_roles table
+  const fetchUserRoles = async () => {
+    if (!user) return;
     
-    debugUserRoles();
-  }, [user, isAdmin]);
+    try {
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
 
-  // Calculate statistics
-  const totalApplications = applications.length;
-  const approvedApplications = applications.filter(app => app.status === 'approved').length;
-  const pendingApplications = applications.filter(app => app.status === 'pending').length;
-  const rejectedApplications = applications.filter(app => app.status === 'rejected').length;
+      if (roleError) {
+        console.error('Error fetching roles:', roleError);
+        return;
+      }
+      
+      if (roleData && roleData.length > 0) {
+        // Extract roles from the data
+        const roles = roleData.map(r => r.role);
+        setUserRoles(roles);
+      }
+      
+    } catch (error) {
+      console.error('Error in fetchUserRoles:', error);
+    }
+  };
 
-  // For moderators, filter classes they have access to
-  const accessibleClasses = isAdmin 
-    ? classes 
-    : classes.filter(cls => user?.classes?.includes(cls.code));
+  const isAdmin = userRoles.includes('admin');
+  const isModerator = userRoles.includes('moderator');
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login');
+  };
 
   return (
     <AppLayout>
-      <div className="container mx-auto">
-        <h1 className="text-3xl font-bold mb-6">
-          Welcome, <span className="text-islamic-primary">{user?.name}</span>
-        </h1>
-        
-        {/* Debug info for admins */}
-        {process.env.NODE_ENV !== 'production' && (
-          <div className="mb-4 p-4 border border-amber-400 bg-amber-50 rounded-md">
-            <h3 className="font-bold">Debug Info:</h3>
-            <p>User ID: {user?.id}</p>
-            <p>User Role: {user?.role}</p>
-            <p>isAdmin: {isAdmin ? 'Yes' : 'No'}</p>
-          </div>
-        )}
-        
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="container mx-auto py-6">
+        <h1 className="text-3xl font-bold mb-6 text-islamic-primary">Dashboard</h1>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Applications</CardTitle>
+            <CardHeader>
+              <CardTitle>Profile</CardTitle>
+              <CardDescription>View and manage your profile settings</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center">
-                <FileText className="h-4 w-4 text-islamic-blue mr-2" />
-                <span className="text-2xl font-bold">{totalApplications}</span>
-              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                You are currently signed in as {user?.email}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Role: {userRoles.join(', ') || 'User'}
+              </p>
             </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Approved</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
-                <span className="text-2xl font-bold">{approvedApplications}</span>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <ClipboardList className="h-4 w-4 text-amber-500 mr-2" />
-                <span className="text-2xl font-bold">{pendingApplications}</span>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Rejected</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <XCircle className="h-4 w-4 text-red-600 mr-2" />
-                <span className="text-2xl font-bold">{rejectedApplications}</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* Quick Actions */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-          <div className="flex flex-wrap gap-3">
-            <Button asChild className="bg-islamic-primary hover:bg-islamic-primary/90">
-              <Link to="/applications/new">
-                <PlusCircle className="h-4 w-4 mr-2" />
-                New Application
-              </Link>
+            <Button onClick={() => navigate('/profile')}>
+              <User className="mr-2 h-4 w-4" />
+              View Profile
             </Button>
-            <Button asChild variant="outline">
-              <Link to="/check-status">
-                Check Application Status
-              </Link>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Applications</CardTitle>
+              <CardDescription>Manage your applications</CardDescription>
+            </CardHeader>
+            <CardContent>
+              View, submit, and track the status of your applications.
+            </CardContent>
+            <Button onClick={() => navigate('/applications')}>
+              <BookOpenCheck className="mr-2 h-4 w-4" />
+              View Applications
             </Button>
-            {isAdmin && (
-              <Button asChild className="bg-islamic-secondary hover:bg-islamic-secondary/90">
-                <Link to="/admin">
-                  Admin Panel
-                </Link>
+          </Card>
+
+          {isAdmin && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Admin</CardTitle>
+                <CardDescription>Admin-only functions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                Manage users, classes, and system settings.
+              </CardContent>
+              <Button onClick={() => navigate('/admin')}>
+                <ShieldCheck className="mr-2 h-4 w-4" />
+                Admin Dashboard
               </Button>
-            )}
-          </div>
+            </Card>
+          )}
+
+          {isModerator && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Moderator</CardTitle>
+                <CardDescription>Moderator-only functions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                Moderate applications and manage user access.
+              </CardContent>
+              <Button onClick={() => navigate('/admin')}>
+                <Settings className="mr-2 h-4 w-4" />
+                Moderator Settings
+              </Button>
+            </Card>
+          )}
         </div>
-        
-        {/* Available Classes */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Available Classes</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {accessibleClasses.map(cls => (
-              <Card key={cls.code}>
-                <CardHeader>
-                  <CardTitle>{cls.name}</CardTitle>
-                  <CardDescription>Class Code: {cls.code}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{cls.description}</p>
-                </CardContent>
-                <CardFooter>
-                  <Button asChild variant="outline" className="w-full">
-                    <Link to={`/applications?class=${cls.code}`}>
-                      View Applications
-                    </Link>
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+
+        <div className="mt-6">
+          <Button variant="outline" onClick={handleSignOut}>
+            Sign Out
+          </Button>
         </div>
       </div>
     </AppLayout>

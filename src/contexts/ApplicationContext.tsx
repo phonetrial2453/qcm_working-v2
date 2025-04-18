@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from '@/components/ui/sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -176,13 +175,31 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
+  const generateApplicationId = (classCode: string): string => {
+    const classApplications = applications.filter(app => app.classCode === classCode);
+    const nextNumber = classApplications.length + 1;
+    return `${classCode}${nextNumber.toString().padStart(4, '0')}`;
+  };
+
   const addApplication = async (applicationData: Omit<StudentApplication, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
       if (!user) throw new Error('User must be logged in to add applications');
 
+      // Count existing applications for this class to generate a simple ID
+      const { count, error: countError } = await supabase
+        .from('applications')
+        .select('*', { count: 'exact', head: true })
+        .eq('class_code', applicationData.classCode);
+        
+      if (countError) throw countError;
+      
+      // Generate a simple ID with class code and sequential number
+      const simpleId = `${applicationData.classCode}${(count || 0 + 1).toString().padStart(4, '0')}`;
+
       const { data, error } = await supabase
         .from('applications')
         .insert([{
+          id: simpleId, // Use the simple ID instead of UUID
           class_code: applicationData.classCode,
           status: applicationData.status,
           remarks: applicationData.remarks,
@@ -197,7 +214,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
           followup_by: applicationData.followUpBy,
           naqeeb: applicationData.naqeeb,
           naqeeb_response: applicationData.naqeebResponse,
-          user_id: user.id
+          user_id: user.id // Store the current user's ID
         }])
         .select()
         .single();
@@ -341,12 +358,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       valid: errors.length === 0,
       errors,
     };
-  };
-
-  const generateApplicationId = (classCode: string): string => {
-    const classApplications = applications.filter(app => app.classCode === classCode);
-    const nextNumber = classApplications.length + 1;
-    return `${classCode}${nextNumber.toString().padStart(4, '0')}`;
   };
 
   return (
