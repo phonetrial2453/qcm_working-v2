@@ -23,6 +23,8 @@ interface AuthContextType {
   // Alias for more readable code
   login: (email: string, password: string) => Promise<boolean>;
   logout: (redirectTo?: string) => Promise<void>;
+  // Add setUser function
+  setUser: (user: ExtendedUser | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -215,7 +217,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated,
       isAdmin,
       login,
-      logout
+      logout,
+      setUser
     }}>
       {children}
     </AuthContext.Provider>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import AppLayout from '@/components/layout/AppLayout';
@@ -23,8 +22,8 @@ import {
   FormLabel, 
   FormMessage 
 } from '@/components/ui/form';
+import { ClassRecord } from '@/types/supabase-types';
 
-// Define the class schema with validation
 const classSchema = z.object({
   code: z.string().min(2).max(5).regex(/^[A-Z0-9]{2,5}$/, {
     message: "Code must be 2-5 uppercase letters/numbers"
@@ -85,7 +84,6 @@ const ClassSettingsPage: React.FC = () => {
     }
   });
 
-  // Fetch classes from Supabase
   const fetchClasses = async () => {
     setIsLoading(true);
     try {
@@ -157,7 +155,6 @@ const ClassSettingsPage: React.FC = () => {
     setIsLoading(true);
     try {
       if (editingClass) {
-        // Update existing class
         const { error } = await supabase
           .from('classes')
           .update({
@@ -171,7 +168,6 @@ const ClassSettingsPage: React.FC = () => {
         if (error) throw error;
         toast.success(`Class ${values.name} updated successfully`);
       } else {
-        // Check if class code already exists
         const { data: existingClass } = await supabase
           .from('classes')
           .select('code')
@@ -187,7 +183,6 @@ const ClassSettingsPage: React.FC = () => {
           return;
         }
         
-        // Create new class
         const { error } = await supabase
           .from('classes')
           .insert({
@@ -201,7 +196,6 @@ const ClassSettingsPage: React.FC = () => {
         toast.success(`Class ${values.name} created successfully`);
       }
       
-      // Refresh the class list
       fetchClasses();
       setDialogOpen(false);
     } catch (error: any) {
@@ -226,7 +220,6 @@ const ClassSettingsPage: React.FC = () => {
         
       if (error) throw error;
       
-      // Refresh the class list
       fetchClasses();
       toast.success('Class deleted successfully');
     } catch (error: any) {
@@ -238,7 +231,6 @@ const ClassSettingsPage: React.FC = () => {
   };
   
   const handleExportClassTemplate = (classCode: string) => {
-    // In a real app, this would generate a template CSV for the class
     console.log(`Exporting template for class ${classCode}`);
     toast.success('Template exported successfully');
   };

@@ -37,7 +37,7 @@ export type Database = {
           current_residence: Json
           followup_by?: string | null
           hometown_details: Json
-          id?: string
+          id: string
           naqeeb?: string | null
           naqeeb_response?: string | null
           other_details: Json
@@ -177,6 +177,57 @@ export type Database = {
         }
         Relationships: []
       }
+      classes: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          validation_rules: Json | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          validation_rules?: Json | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          validation_rules?: Json | null
+        }
+        Relationships: []
+      }
+      moderator_classes: {
+        Row: {
+          class_code: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          class_code: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          class_code?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -201,8 +252,15 @@ export type Database = {
     }
     Functions: {
       has_role: {
-        Args: { _role: Database["public"]["Enums"]["app_role"] }
+        Args: {
+          user_id: string
+          role_name: Database["public"]["Enums"]["app_role"]
+        }
         Returns: boolean
+      }
+      update_user_profile: {
+        Args: { name: string; avatar_url?: string }
+        Returns: undefined
       }
     }
     Enums: {
