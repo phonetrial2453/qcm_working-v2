@@ -22,7 +22,7 @@ import {
   FormLabel, 
   FormMessage 
 } from '@/components/ui/form';
-import { ClassRecord } from '@/types/supabase-types';
+import { ClassRecord, ValidationRules } from '@/types/supabase-types';
 
 const classSchema = z.object({
   code: z.string().min(2).max(5).regex(/^[A-Z0-9]{2,5}$/, {
@@ -51,14 +51,7 @@ interface ClassInfo {
   code: string;
   name: string;
   description: string | null;
-  validation_rules?: {
-    ageRange: {
-      min: number;
-      max: number;
-    };
-    allowedStates: string[];
-    minimumQualification: string;
-  };
+  validation_rules?: ValidationRules;
   created_at?: string;
   updated_at?: string;
 }
@@ -94,24 +87,26 @@ const ClassSettingsPage: React.FC = () => {
 
       if (error) throw error;
       
-      const formattedClasses = data.map(cls => ({
-        id: cls.id,
-        code: cls.code,
-        name: cls.name,
-        description: cls.description,
-        validation_rules: cls.validation_rules || {
-          ageRange: { ...VALIDATION_RULES.ageRange },
-          allowedStates: [...VALIDATION_RULES.allowedStates],
-          minimumQualification: VALIDATION_RULES.minimumQualification,
-        },
-        created_at: cls.created_at,
-        updated_at: cls.updated_at
-      }));
-      
-      setClasses(formattedClasses);
-    } catch (error) {
+      if (data) {
+        const formattedClasses: ClassInfo[] = data.map(cls => ({
+          id: cls.id,
+          code: cls.code,
+          name: cls.name,
+          description: cls.description,
+          validation_rules: cls.validation_rules as ValidationRules || {
+            ageRange: { ...VALIDATION_RULES.ageRange },
+            allowedStates: [...VALIDATION_RULES.allowedStates],
+            minimumQualification: VALIDATION_RULES.minimumQualification,
+          },
+          created_at: cls.created_at,
+          updated_at: cls.updated_at
+        }));
+        
+        setClasses(formattedClasses);
+      }
+    } catch (error: any) {
       console.error('Error fetching classes:', error);
-      toast.error('Failed to load classes');
+      toast.error('Failed to load classes: ' + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -168,11 +163,15 @@ const ClassSettingsPage: React.FC = () => {
         if (error) throw error;
         toast.success(`Class ${values.name} updated successfully`);
       } else {
-        const { data: existingClass } = await supabase
+        const { data: existingClass, error: checkError } = await supabase
           .from('classes')
           .select('code')
           .eq('code', values.code)
           .single();
+          
+        if (checkError && checkError.code !== 'PGRST116') {
+          throw checkError;
+        }
           
         if (existingClass) {
           form.setError('code', { 

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,7 +14,7 @@ const ProfileUpdateForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || '',
-    avatar_url: user?.avatar_url || ''
+    avatar_url: user?.user_metadata?.avatar_url || ''
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,7 +41,10 @@ const ProfileUpdateForm: React.FC = () => {
         setUser({
           ...user,
           name: formData.name,
-          avatar_url: formData.avatar_url
+          user_metadata: {
+            ...user.user_metadata,
+            avatar_url: formData.avatar_url
+          }
         });
       }
 

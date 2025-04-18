@@ -8,3 +8,13 @@ export type ClassUpdate = Database['public']['Tables']['classes']['Update'];
 
 // Add other types as needed
 export type ModeratorClass = Database['public']['Tables']['moderator_classes']['Row'];
+
+// Add ValidationRules type
+export type ValidationRules = {
+  ageRange: {
+    min: number;
+    max: number;
+  };
+  allowedStates: string[];
+  minimumQualification: string;
+};

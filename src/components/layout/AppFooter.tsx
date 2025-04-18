@@ -16,7 +16,7 @@ const AppFooter: React.FC = () => {
           </div>
           <div className="h-px w-24 bg-islamic-accent/30 my-2"></div>
           <p className="text-sm text-white/70">
-            &copy; {year} Quran & Seerat Scribe. All rights reserved.
+            &copy; {year} Quran Classes Application Manager. All rights reserved.
           </p>
         </div>
       </div>
