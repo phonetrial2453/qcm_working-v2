@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApplications } from '@/contexts/ApplicationContext';
@@ -7,10 +7,38 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, FileText, CheckCircle, XCircle, ClipboardList } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard: React.FC = () => {
   const { user, isAdmin } = useAuth();
   const { applications, classes } = useApplications();
+
+  // Debug user roles
+  useEffect(() => {
+    const debugUserRoles = async () => {
+      if (user?.id) {
+        console.log('Debugging user roles for:', user.id);
+        console.log('Current user object:', user);
+        console.log('isAdmin status:', isAdmin);
+        
+        try {
+          // Try to get roles using the RPC function
+          const { data, error } = await supabase
+            .rpc('get_user_roles', { user_id: user.id });
+            
+          if (error) {
+            console.error('Error calling get_user_roles:', error);
+          } else {
+            console.log('Roles from get_user_roles:', data);
+          }
+        } catch (err) {
+          console.error('Exception in debugUserRoles:', err);
+        }
+      }
+    };
+    
+    debugUserRoles();
+  }, [user, isAdmin]);
 
   // Calculate statistics
   const totalApplications = applications.length;
@@ -29,6 +57,16 @@ const Dashboard: React.FC = () => {
         <h1 className="text-3xl font-bold mb-6">
           Welcome, <span className="text-islamic-primary">{user?.name}</span>
         </h1>
+        
+        {/* Debug info for admins */}
+        {process.env.NODE_ENV !== 'production' && (
+          <div className="mb-4 p-4 border border-amber-400 bg-amber-50 rounded-md">
+            <h3 className="font-bold">Debug Info:</h3>
+            <p>User ID: {user?.id}</p>
+            <p>User Role: {user?.role}</p>
+            <p>isAdmin: {isAdmin ? 'Yes' : 'No'}</p>
+          </div>
+        )}
         
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
