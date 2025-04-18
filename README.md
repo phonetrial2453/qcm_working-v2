@@ -1,73 +1,93 @@
-# Welcome to your Lovable project
+# 📚 Quran & Seerat Class Application Manager
 
-## Project info
+A web-based platform to manage student applications for Quran and Seerat classes, with real-time validation, secure authentication, and admin/moderator approval workflow.
 
-**URL**: https://lovable.dev/projects/eec4ba76-85dc-4d6a-b302-29ccac4a08b4
+---
 
-## How can I edit this code?
+## ✨ Features
 
-There are several ways of editing your application.
+- 📝 **Application Form**: Clean and mobile-friendly form with validation for:
+  - Full Name
+  - Parent Name
+  - Address & Location
+  - Mobile & WhatsApp Number
+  - Reference (Naqeeb)
+  - Class & Age Selection
 
-**Use Lovable**
+- 🔐 **Role-Based Access**
+  - **Admin**: Full access to manage all applications and moderators
+  - **Moderator (Naqeeb)**: Review, approve, or reject students from their area
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/eec4ba76-85dc-4d6a-b302-29ccac4a08b4) and start prompting.
+- 🔄 **Real-Time Validation**
+  - Prevent submission if required fields are incomplete or invalid
+  - Unique Application ID generation for every form
 
-Changes made via Lovable will be committed automatically to this repo.
+- 🧾 **Google Sheets Integration**
+  - Store all submissions in a Google Sheet with live updates
 
-**Use your preferred IDE**
+- 🛡️ **Secure Authentication**
+  - Email/password-based login for admins and moderators
+  - Option for OTP-based access (if enabled)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- 📊 **Dashboard**
+  - Search, filter, and track application statuses
+  - Update or modify entries with comments
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+## 🔧 Tech Stack
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- **Frontend**: Next.js with TailwindCSS
+- **Backend**: Supabase (PostgreSQL + Auth)
+- **Forms & Storage**: Google Sheets API
+- **Auth Roles**: SuperAdmin, Admin, Moderator (Naqeeb)
+- **Hosting**: Vercel / Self-hosted (Docker Compatible)
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+---
 
-# Step 3: Install the necessary dependencies.
-npm i
+## 🚀 Getting Started
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### 1. Clone the Repo
+
+```bash
+git clone https://github.com/phonetrial2453/quran-seerat-scribe.git
+cd quran-seerat-scribe
+
+
+###Install Dependencies
+npm install
+# or
+yarn install
+
+
+###Create a .env.local file and configure the following:
+
+SUPABASE_URL=your-supabase-url
+SUPABASE_ANON_KEY=your-supabase-anon-key
+GOOGLE_SHEET_ID=your-google-sheet-id
+
+###Run the App
 npm run dev
-```
 
-**Edit a file directly in GitHub**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
 
-**Use GitHub Codespaces**
+##🛠️ Admin Panel Features
+View all applications
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Filter by status (Pending, Approved, Rejected)
 
-## What technologies are used for this project?
+Approve or Reject applications
 
-This project is built with:
+Add internal comments or feedback
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Export data to Excel or PDF (optional feature)
 
-## How can I deploy this project?
+##📌 Future Plans
+Email/WhatsApp notifications on approval
 
-Simply open [Lovable](https://lovable.dev/projects/eec4ba76-85dc-4d6a-b302-29ccac4a08b4) and click on Share -> Publish.
+Multi-language form support (Urdu/Hindi/English)
 
-## Can I connect a custom domain to my Lovable project?
+Mobile App version (PWA)
 
-Yes, you can!
+Class reminders and attendance logging
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
