@@ -33,9 +33,9 @@ const AppHeader: React.FC = () => {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center">
           <Link to="/" className="text-white text-2xl font-bold">
-            <span className="hidden sm:inline">Quran & Seerat</span>
-            <span className="sm:hidden">Q&S</span>
-            <span className="text-islamic-accent">Scribe</span>
+            <span className="hidden sm:inline">Quran Classes</span>
+            <span className="sm:hidden">QC</span>
+            <span className="text-islamic-accent">Manager</span>
           </Link>
         </div>
 

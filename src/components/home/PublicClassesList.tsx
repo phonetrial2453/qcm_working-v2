@@ -1,172 +1,160 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Copy, Book, Check, FileText } from 'lucide-react';
+import { Copy, Download, Info } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { ValidationRules } from '@/types/supabase-types';
 
 interface ClassInfo {
-  id: string;
+  id?: string;
   code: string;
   name: string;
   description: string | null;
-  validation_rules?: ValidationRules;
+  validation_rules: ValidationRules | null;
+  created_at?: string;
+  updated_at?: string;
 }
-
-const applicationTemplate = (classCode: string) => {
-  return `
-APPLICATION FORM - ${classCode}
-
-STUDENT DETAILS:
-Full Name: 
-Mobile Number: 
-WhatsApp Number: 
-
-HOMETOWN DETAILS:
-Area: 
-City: 
-District: 
-State: 
-
-CURRENT RESIDENCE:
-Area: 
-Mandal: 
-City: 
-State: 
-
-OTHER DETAILS:
-Age: 
-Qualification: 
-Profession: 
-Email: 
-
-REFERRED BY:
-Full Name: 
-Mobile Number: 
-Student ID (if applicable): 
-Batch: 
-  `;
-};
 
 const PublicClassesList: React.FC = () => {
   const [classes, setClasses] = useState<ClassInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [copiedClass, setCopiedClass] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchClasses = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('classes')
-          .select('*')
-          .order('name');
-
-        if (error) throw error;
-        
-        setClasses(data || []);
-      } catch (error: any) {
-        console.error('Error fetching classes:', error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchClasses();
   }, []);
 
-  const copyApplicationFormat = (classCode: string) => {
-    navigator.clipboard.writeText(applicationTemplate(classCode))
-      .then(() => {
-        setCopiedClass(classCode);
-        toast.success('Application format copied to clipboard');
-        setTimeout(() => setCopiedClass(null), 2000);
-      })
-      .catch(() => {
-        toast.error('Failed to copy application format');
-      });
+  const fetchClasses = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .order('code');
+
+      if (error) throw error;
+      
+      if (data) {
+        const formattedClasses: ClassInfo[] = data.map(cls => ({
+          id: cls.id,
+          code: cls.code,
+          name: cls.name,
+          description: cls.description,
+          validation_rules: cls.validation_rules as ValidationRules,
+          created_at: cls.created_at,
+          updated_at: cls.updated_at
+        }));
+        
+        setClasses(formattedClasses);
+      }
+    } catch (error: any) {
+      console.error('Error fetching classes:', error);
+      toast.error('Failed to load classes: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <div className="animate-pulse">Loading available classes...</div>
-      </div>
-    );
-  }
+  const copyClassInfo = (classInfo: ClassInfo) => {
+    const requirements = [];
+    
+    if (classInfo.validation_rules?.ageRange) {
+      requirements.push(`Age Range: ${classInfo.validation_rules.ageRange.min} - ${classInfo.validation_rules.ageRange.max} years`);
+    }
+    
+    if (classInfo.validation_rules?.minimumQualification) {
+      requirements.push(`Minimum Qualification: ${classInfo.validation_rules.minimumQualification}`);
+    }
+    
+    if (classInfo.validation_rules?.allowedStates && classInfo.validation_rules.allowedStates.length > 0) {
+      requirements.push(`Eligible States: ${classInfo.validation_rules.allowedStates.join(', ')}`);
+    }
+    
+    const classDetails = `
+Class: ${classInfo.name} (${classInfo.code})
+Description: ${classInfo.description || 'No description available'}
+
+Requirements:
+${requirements.length > 0 ? requirements.map(req => `- ${req}`).join('\n') : '- No specific requirements listed'}
+
+To apply for this class, please register and submit an application through our portal.
+    `.trim();
+    
+    navigator.clipboard.writeText(classDetails);
+    toast.success('Class information copied to clipboard');
+  };
 
   return (
-    <div className="max-w-4xl mx-auto py-8">
-      <h2 className="text-2xl font-bold text-islamic-primary mb-6">Available Classes</h2>
-      
-      {classes.length === 0 ? (
-        <Card>
-          <CardContent className="py-6">
-            <p className="text-center text-muted-foreground">No classes are currently available.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <Accordion type="single" collapsible className="space-y-4">
-          {classes.map((cls) => (
-            <AccordionItem value={cls.id} key={cls.id} className="border rounded-lg overflow-hidden">
-              <AccordionTrigger className="px-4 py-3 hover:bg-muted/50">
-                <div className="flex items-center text-left">
-                  <Book className="mr-2 h-5 w-5 text-islamic-primary" />
-                  <div>
-                    <h3 className="font-medium">{cls.name}</h3>
-                    <p className="text-xs text-muted-foreground">Code: {cls.code}</p>
-                  </div>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4">
-                <div className="space-y-4">
-                  {cls.description && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">Description</h4>
-                      <p className="text-sm text-muted-foreground">{cls.description}</p>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="text-islamic-primary">Available Classes</CardTitle>
+        <CardDescription>
+          View available classes and their requirements
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center p-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-islamic-primary"></div>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {classes.length > 0 ? (
+              classes.map((classInfo) => (
+                <Card key={classInfo.id || classInfo.code} className="overflow-hidden">
+                  <CardHeader className="bg-islamic-primary/5 pb-2">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <CardTitle className="text-xl">{classInfo.name}</CardTitle>
+                        <p className="text-sm font-mono text-muted-foreground">Code: {classInfo.code}</p>
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => copyClassInfo(classInfo)} title="Copy class information">
+                        <Copy className="h-4 w-4" />
+                      </Button>
                     </div>
-                  )}
-                  
-                  {cls.validation_rules && (
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <p className="text-sm mb-4">{classInfo.description || 'No description available'}</p>
+                    
                     <div className="space-y-2">
-                      <h4 className="text-sm font-medium">Requirements</h4>
-                      <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-                        <li>Age: {cls.validation_rules.ageRange.min} - {cls.validation_rules.ageRange.max} years</li>
-                        {cls.validation_rules.minimumQualification && (
-                          <li>Minimum Qualification: {cls.validation_rules.minimumQualification}</li>
+                      <h4 className="text-sm font-semibold flex items-center gap-1">
+                        <Info className="h-3 w-3" /> Requirements
+                      </h4>
+                      <ul className="text-xs space-y-1">
+                        {classInfo.validation_rules?.ageRange && (
+                          <li>
+                            Age: {classInfo.validation_rules.ageRange.min} - {classInfo.validation_rules.ageRange.max} years
+                          </li>
                         )}
-                        <li>Eligible States: {cls.validation_rules.allowedStates.join(', ')}</li>
+                        {classInfo.validation_rules?.minimumQualification && (
+                          <li>Qualification: {classInfo.validation_rules.minimumQualification}</li>
+                        )}
+                        {classInfo.validation_rules?.allowedStates && classInfo.validation_rules.allowedStates.length > 0 && (
+                          <li>
+                            Eligible States: {classInfo.validation_rules.allowedStates.slice(0, 3).join(', ')}
+                            {classInfo.validation_rules.allowedStates.length > 3 && ` and ${classInfo.validation_rules.allowedStates.length - 3} more`}
+                          </li>
+                        )}
                       </ul>
                     </div>
-                  )}
-                  
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    className="w-full mt-2 bg-islamic-primary/10 hover:bg-islamic-primary/20 text-islamic-primary border-islamic-primary/30"
-                    onClick={() => copyApplicationFormat(cls.code)}
-                  >
-                    {copiedClass === cls.code ? (
-                      <>
-                        <Check className="mr-2 h-4 w-4" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="mr-2 h-4 w-4" />
-                        Copy Application Format
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      )}
-    </div>
+                  </CardContent>
+                  <CardFooter className="pt-0 px-6 pb-4">
+                    <Button variant="outline" size="sm" className="w-full" onClick={() => copyClassInfo(classInfo)}>
+                      Copy Details
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-8 text-muted-foreground">
+                No classes are currently available.
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -139,17 +140,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Fetch moderator class assignments (in a real app, this would come from a database)
   const fetchModeratorClasses = async (userId: string) => {
-    // This is a placeholder - in a real app, you would fetch from the database
-    // For now, we'll assign some mock classes to all moderators
-    const mockClasses = ['QRAN', 'SRAT'];
-    
-    setUser(prevUser => {
-      if (!prevUser) return null;
-      return {
-        ...prevUser,
-        classes: mockClasses
-      };
-    });
+    try {
+      // Query the moderator_classes table to get assigned classes
+      const { data, error } = await supabase
+        .from('moderator_classes')
+        .select('class_code')
+        .eq('user_id', userId);
+        
+      if (error) {
+        console.error('Error fetching moderator classes:', error.message);
+        return;
+      }
+      
+      if (data && Array.isArray(data) && data.length > 0) {
+        const classCodes = data.map(item => item.class_code);
+        setUser(prevUser => {
+          if (!prevUser) return null;
+          return {
+            ...prevUser,
+            classes: classCodes
+          };
+        });
+      }
+    } catch (error: any) {
+      console.error('Error in fetchModeratorClasses:', error.message);
+    }
   };
 
   const signIn = async (email: string, password: string) => {
