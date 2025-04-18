@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import AppLayout from '@/components/layout/AppLayout';
@@ -9,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/sonner';
 import { useApplications } from '@/contexts/ApplicationContext';
-import { PlusCircle, Edit, Trash2, Save, X, FileText, Download, Settings } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Save, X, FileText, Download, Settings, Copy } from 'lucide-react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -24,6 +25,38 @@ import {
 } from '@/components/ui/form';
 import { ClassRecord, ValidationRules } from '@/types/supabase-types';
 
+const DEFAULT_TEMPLATE = `=====================
+STUDENT DETAILS
+=====================
+Full Name : Your Name
+Mobile# : 1234567890
+WhatsApp# : 1234567890
+——————————————
+HOMETOWN DETAILS
+Area/Locality : Your Area
+City : Your City
+District : Your District
+State : Your State
+——————————————
+CURRENT RESIDENCE
+Area/Locality : Current Area
+Mandal : Your Mandal
+City : Current City
+State : Current State
+——————————————
+OTHER DETAILS
+Age : Your Age
+Qualification : Your Qualification
+Profession : Your Profession
+Email Address : your.email@example.com
+——————————————
+REFERRED By
+Full Name : Referrer Name
+Mobile# : Referrer Mobile
+Student ID# : Student ID
+Batch# : Batch Number
+=====================`;
+
 const classSchema = z.object({
   code: z.string().min(2).max(5).regex(/^[A-Z0-9]{2,5}$/, {
     message: "Code must be 2-5 uppercase letters/numbers"
@@ -32,6 +65,7 @@ const classSchema = z.object({
     message: "Name must be at least 2 characters"
   }),
   description: z.string().optional(),
+  template: z.string().optional(),
   validationRules: z.object({
     ageRange: z.object({
       min: z.number().min(0).max(100),
@@ -51,6 +85,7 @@ interface ClassInfo {
   code: string;
   name: string;
   description: string | null;
+  template?: string | null;
   validation_rules?: ValidationRules;
   created_at?: string;
   updated_at?: string;
@@ -69,6 +104,7 @@ const ClassSettingsPage: React.FC = () => {
       code: '',
       name: '',
       description: '',
+      template: DEFAULT_TEMPLATE,
       validationRules: {
         ageRange: { ...VALIDATION_RULES.ageRange },
         allowedStates: [...VALIDATION_RULES.allowedStates],
@@ -93,6 +129,7 @@ const ClassSettingsPage: React.FC = () => {
           code: cls.code,
           name: cls.name,
           description: cls.description,
+          template: cls.template || DEFAULT_TEMPLATE,
           validation_rules: cls.validation_rules as ValidationRules || {
             ageRange: { ...VALIDATION_RULES.ageRange },
             allowedStates: [...VALIDATION_RULES.allowedStates],
@@ -122,6 +159,7 @@ const ClassSettingsPage: React.FC = () => {
       code: classInfo.code,
       name: classInfo.name,
       description: classInfo.description || '',
+      template: classInfo.template || DEFAULT_TEMPLATE,
       validationRules: classInfo.validation_rules || {
         ageRange: { ...VALIDATION_RULES.ageRange },
         allowedStates: [...VALIDATION_RULES.allowedStates],
@@ -137,6 +175,7 @@ const ClassSettingsPage: React.FC = () => {
       code: '',
       name: '',
       description: '',
+      template: DEFAULT_TEMPLATE,
       validationRules: {
         ageRange: { ...VALIDATION_RULES.ageRange },
         allowedStates: [...VALIDATION_RULES.allowedStates],
@@ -155,6 +194,7 @@ const ClassSettingsPage: React.FC = () => {
           .update({
             name: values.name,
             description: values.description,
+            template: values.template,
             validation_rules: values.validationRules,
             updated_at: new Date().toISOString()
           })
@@ -188,6 +228,7 @@ const ClassSettingsPage: React.FC = () => {
             code: values.code,
             name: values.name,
             description: values.description,
+            template: values.template,
             validation_rules: values.validationRules
           });
           
@@ -229,9 +270,10 @@ const ClassSettingsPage: React.FC = () => {
     }
   };
   
-  const handleExportClassTemplate = (classCode: string) => {
-    console.log(`Exporting template for class ${classCode}`);
-    toast.success('Template exported successfully');
+  const copyTemplate = (template: string | null | undefined) => {
+    if (!template) return;
+    navigator.clipboard.writeText(template);
+    toast.success('Application template copied to clipboard');
   };
 
   return (
@@ -300,10 +342,11 @@ const ClassSettingsPage: React.FC = () => {
                                 size="icon"
                                 variant="outline"
                                 className="h-8 w-8"
-                                onClick={() => handleExportClassTemplate(classInfo.code)}
+                                onClick={() => copyTemplate(classInfo.template)}
                                 disabled={isLoading}
+                                title="Copy application template"
                               >
-                                <Download className="h-4 w-4" />
+                                <Copy className="h-4 w-4" />
                               </Button>
                               <Button
                                 size="icon"
@@ -398,6 +441,28 @@ const ClassSettingsPage: React.FC = () => {
                           rows={3}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="template"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Application Template</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          {...field}
+                          placeholder="Enter application template format"
+                          rows={10}
+                          className="font-mono text-sm"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        The template format that applicants will copy and fill out
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

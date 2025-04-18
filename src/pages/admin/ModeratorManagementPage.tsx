@@ -1,343 +1,320 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/sonner';
-import { useAuth } from '@/contexts/AuthContext';
 import { useApplications } from '@/contexts/ApplicationContext';
-import { UserCog, UserPlus, Edit, Trash2, Check, X, Key, Shield } from 'lucide-react';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { 
-  Form, 
-  FormControl, 
-  FormDescription, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from '@/components/ui/form';
+import { PlusCircle, Search, Trash2, User, UsersRound } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 
-// Define validation schema for moderator form
-const moderatorSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
-  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  selectedClasses: z.array(z.string()).min(1, { message: "Please assign at least one class" })
-});
-
-const resetPasswordSchema = z.object({
-  password: z.string().min(8, { message: "Password must be at least 8 characters" })
-});
-
-type ModeratorFormValues = z.infer<typeof moderatorSchema>;
-type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
-
-interface Moderator {
+type Moderator = {
   id: string;
   email: string;
   name: string | null;
-  role: string;
-  classes: string[];
-  lastActive: string | null;
-}
+  assignedClasses: string[];
+};
 
 const ModeratorManagementPage: React.FC = () => {
-  const { isAdmin, user } = useAuth();
-  const { classes } = useApplications();
-  const navigate = useNavigate();
-  
   const [moderators, setModerators] = useState<Moderator[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [classDialogOpen, setClassDialogOpen] = useState(false);
-  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
-  const [selectedModeratorId, setSelectedModeratorId] = useState<string | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('existing');
   
-  const moderatorForm = useForm<ModeratorFormValues>({
-    resolver: zodResolver(moderatorSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-      name: '',
-      selectedClasses: []
-    }
-  });
-
-  const resetPasswordForm = useForm<ResetPasswordFormValues>({
-    resolver: zodResolver(resetPasswordSchema),
-    defaultValues: {
-      password: ''
-    }
-  });
-  
-  // Fetch moderators from Supabase
-  const fetchModerators = async () => {
-    setIsLoading(true);
-    try {
-      // Get users with moderator role
-      const { data: userData, error: userError } = await supabase
-        .from('user_roles')
-        .select(`
-          user_id,
-          role
-        `)
-        .eq('role', 'moderator');
-      
-      if (userError) throw userError;
-      
-      if (!userData || userData.length === 0) {
-        setModerators([]);
-        setIsLoading(false);
-        return;
-      }
-      
-      // Get user details from auth schema (using separate fetch for each user)
-      const moderatorPromises = userData.map(async (userRole) => {
-        // Get moderator's profile information from auth.users
-        const { data: moderatorData, error: moderatorError } = await supabase.auth.admin.getUserById(
-          userRole.user_id
-        );
-        
-        if (moderatorError) {
-          console.error('Error fetching moderator details:', moderatorError);
-          return null;
-        }
-        
-        if (!moderatorData?.user) {
-          return null;
-        }
-        
-        // Get assigned classes for this moderator
-        const { data: classData, error: classError } = await supabase
-          .from('moderator_classes')
-          .select('class_code')
-          .eq('user_id', userRole.user_id);
-          
-        if (classError) {
-          console.error('Error fetching moderator classes:', classError);
-        }
-        
-        return {
-          id: userRole.user_id,
-          email: moderatorData.user.email || '',
-          name: moderatorData.user.user_metadata?.name || null,
-          role: 'moderator',
-          classes: classData ? classData.map(c => c.class_code) : [],
-          lastActive: moderatorData.user.last_sign_in_at
-        };
-      });
-      
-      const moderatorResults = await Promise.all(moderatorPromises);
-      setModerators(moderatorResults.filter(Boolean) as Moderator[]);
-    } catch (error) {
-      console.error('Error fetching moderators:', error);
-      toast.error('Failed to load moderators');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { classes } = useApplications();
 
   useEffect(() => {
     fetchModerators();
   }, []);
-  
-  const handleAddModerator = async (values: ModeratorFormValues) => {
+
+  const fetchModerators = async () => {
     setIsLoading(true);
     try {
-      // Create user in Supabase Auth
-      const { data: userData, error: userError } = await supabase.auth.admin.createUser({
-        email: values.email,
-        password: values.password,
-        email_confirm: true,
-        user_metadata: {
-          name: values.name
-        }
-      });
-      
-      if (userError) throw userError;
-      
-      if (!userData.user) {
-        throw new Error('Failed to create user');
-      }
-      
-      // Assign moderator role
-      const { error: roleError } = await supabase
+      const { data: moderatorRoles, error: rolesError } = await supabase
         .from('user_roles')
-        .insert({
-          user_id: userData.user.id,
-          role: 'moderator'
-        });
-        
-      if (roleError) throw roleError;
-      
-      // Assign classes to moderator
-      if (values.selectedClasses.length > 0) {
-        const classAssignments = values.selectedClasses.map(classCode => ({
-          user_id: userData.user.id,
-          class_code: classCode
-        }));
-        
-        const { error: classError } = await supabase
-          .from('moderator_classes')
-          .insert(classAssignments);
-          
-        if (classError) throw classError;
+        .select('user_id')
+        .eq('role', 'moderator');
+
+      if (rolesError) throw rolesError;
+
+      if (!moderatorRoles || moderatorRoles.length === 0) {
+        setModerators([]);
+        setIsLoading(false);
+        return;
       }
+
+      const moderatorIds = moderatorRoles.map(m => m.user_id);
       
-      // Refresh the moderator list
-      fetchModerators();
-      setAddDialogOpen(false);
-      moderatorForm.reset();
-      toast.success('Moderator added successfully');
+      // Get users from auth.users through RPC
+      const { data: users, error: usersError } = await supabase.rpc('get_users_by_ids', {
+        user_ids: moderatorIds
+      });
+
+      if (usersError) throw usersError;
+
+      // Get assigned classes for each moderator
+      const { data: moderatorClasses, error: classesError } = await supabase
+        .from('moderator_classes')
+        .select('user_id, class_code')
+        .in('user_id', moderatorIds);
+
+      if (classesError) throw classesError;
+
+      // Map moderator classes to users
+      const moderatorClassMap: Record<string, string[]> = {};
+      moderatorClasses?.forEach(mc => {
+        if (!moderatorClassMap[mc.user_id]) {
+          moderatorClassMap[mc.user_id] = [];
+        }
+        moderatorClassMap[mc.user_id].push(mc.class_code);
+      });
+
+      const formattedModerators: Moderator[] = users?.map(user => ({
+        id: user.id,
+        email: user.email,
+        name: user.raw_user_meta_data?.name || null,
+        assignedClasses: moderatorClassMap[user.id] || []
+      })) || [];
+
+      setModerators(formattedModerators);
     } catch (error: any) {
-      console.error('Error adding moderator:', error);
-      toast.error(`Failed to add moderator: ${error.message}`);
+      console.error('Error fetching moderators:', error);
+      toast.error('Failed to load moderators: ' + error.message);
     } finally {
       setIsLoading(false);
     }
   };
-  
-  const handleDeleteModerator = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this moderator? This action cannot be undone.')) {
+
+  const searchUsers = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
       return;
     }
-    
+
+    setSearchLoading(true);
+    try {
+      // Use RPC to search users
+      const { data, error } = await supabase.rpc('search_users', {
+        search_term: searchQuery.toLowerCase()
+      });
+
+      if (error) throw error;
+
+      // Filter out users who are already moderators
+      const moderatorIds = moderators.map(mod => mod.id);
+      const filteredResults = data?.filter(user => !moderatorIds.includes(user.id)) || [];
+      
+      setSearchResults(filteredResults);
+    } catch (error: any) {
+      console.error('Error searching users:', error);
+      toast.error('Failed to search users: ' + error.message);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleAddModerator = async () => {
+    if (!selectedUser && !newEmail) {
+      toast.error('Please select a user or enter an email address');
+      return;
+    }
+
+    if (selectedClasses.length === 0) {
+      toast.error('Please select at least one class');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Remove role assignments
+      let userId = selectedUser;
+      
+      // If we're adding by email, we need to first create or find the user
+      if (!userId && newEmail) {
+        // Check if user already exists
+        const { data: existingUser, error: searchError } = await supabase.rpc('search_users', {
+          search_term: newEmail.toLowerCase()
+        });
+
+        if (searchError) throw searchError;
+
+        if (existingUser && existingUser.length > 0) {
+          // Use existing user
+          userId = existingUser[0].id;
+        } else {
+          // Create new user
+          const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+            email: newEmail,
+            email_confirm: true,
+            user_metadata: { name: 'New Moderator' }
+          });
+
+          if (createError) throw createError;
+          userId = newUser.user.id;
+        }
+      }
+
+      if (!userId) {
+        throw new Error('Failed to get user ID');
+      }
+
+      // Add moderator role
       const { error: roleError } = await supabase
         .from('user_roles')
-        .delete()
-        .eq('user_id', id);
-        
+        .upsert({ user_id: userId, role: 'moderator' });
+
       if (roleError) throw roleError;
-      
-      // Remove class assignments
-      const { error: classError } = await supabase
+
+      // Add classes for the moderator
+      const classInserts = selectedClasses.map(classCode => ({
+        user_id: userId,
+        class_code: classCode
+      }));
+
+      const { error: classesError } = await supabase
         .from('moderator_classes')
-        .delete()
-        .eq('user_id', id);
-        
-      if (classError) throw classError;
-      
-      // Delete user from Supabase Auth
-      const { error: userError } = await supabase.auth.admin.deleteUser(id);
-      
+        .upsert(classInserts);
+
+      if (classesError) throw classesError;
+
+      // Get user details to add to our state
+      const { data: userData, error: userError } = await supabase.rpc('get_users_by_ids', {
+        user_ids: [userId]
+      });
+
       if (userError) throw userError;
-      
-      // Refresh the moderator list
-      fetchModerators();
-      toast.success('Moderator removed successfully');
+
+      const newModeratorData = {
+        id: userId,
+        email: userData ? userData[0].email : newEmail,
+        name: userData && userData[0].raw_user_meta_data?.name || null,
+        assignedClasses: selectedClasses
+      };
+
+      setModerators(prev => [...prev, newModeratorData]);
+      setDialogOpen(false);
+      setSelectedUser(null);
+      setNewEmail('');
+      setSelectedClasses([]);
+      setActiveTab('existing');
+      toast.success(`Moderator ${newModeratorData.email} added successfully`);
     } catch (error: any) {
-      console.error('Error deleting moderator:', error);
-      toast.error(`Failed to delete moderator: ${error.message}`);
+      console.error('Error adding moderator:', error);
+      toast.error('Failed to add moderator: ' + error.message);
     } finally {
       setIsLoading(false);
     }
   };
-  
-  const handleEditClasses = (moderator: Moderator) => {
-    setSelectedModeratorId(moderator.id);
-    // Set the form's selected classes based on moderator's current assignments
-    moderatorForm.setValue('selectedClasses', moderator.classes || []);
-    setClassDialogOpen(true);
-  };
-  
-  const handleSaveClasses = async () => {
-    if (!selectedModeratorId) return;
-    
+
+  const removeModerator = async (moderatorId: string) => {
+    if (!confirm('Are you sure you want to remove this moderator?')) {
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const selectedClasses = moderatorForm.getValues('selectedClasses');
-      
-      // Delete existing class assignments
+      // Remove moderator role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', moderatorId)
+        .eq('role', 'moderator');
+
+      if (roleError) throw roleError;
+
+      // Remove class assignments
+      const { error: classesError } = await supabase
+        .from('moderator_classes')
+        .delete()
+        .eq('user_id', moderatorId);
+
+      if (classesError) throw classesError;
+
+      setModerators(prev => prev.filter(mod => mod.id !== moderatorId));
+      toast.success('Moderator removed successfully');
+    } catch (error: any) {
+      console.error('Error removing moderator:', error);
+      toast.error('Failed to remove moderator: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateModeratorClasses = async (moderatorId: string, updatedClasses: string[]) => {
+    setIsLoading(true);
+    try {
+      // First, delete all existing class assignments
       const { error: deleteError } = await supabase
         .from('moderator_classes')
         .delete()
-        .eq('user_id', selectedModeratorId);
-        
+        .eq('user_id', moderatorId);
+
       if (deleteError) throw deleteError;
-      
-      // Add new class assignments
-      if (selectedClasses.length > 0) {
-        const classAssignments = selectedClasses.map(classCode => ({
-          user_id: selectedModeratorId,
+
+      // Then, add the new ones if there are any
+      if (updatedClasses.length > 0) {
+        const classInserts = updatedClasses.map(classCode => ({
+          user_id: moderatorId,
           class_code: classCode
         }));
-        
+
         const { error: insertError } = await supabase
           .from('moderator_classes')
-          .insert(classAssignments);
-          
+          .insert(classInserts);
+
         if (insertError) throw insertError;
       }
-      
-      // Refresh the moderator list
-      fetchModerators();
-      setClassDialogOpen(false);
-      toast.success('Class assignments updated successfully');
+
+      // Update the local state
+      setModerators(prev => prev.map(mod => 
+        mod.id === moderatorId 
+          ? { ...mod, assignedClasses: updatedClasses } 
+          : mod
+      ));
+
+      toast.success('Moderator classes updated successfully');
     } catch (error: any) {
-      console.error('Error updating class assignments:', error);
-      toast.error(`Failed to update class assignments: ${error.message}`);
+      console.error('Error updating moderator classes:', error);
+      toast.error('Failed to update moderator classes: ' + error.message);
     } finally {
       setIsLoading(false);
     }
   };
-  
-  const handleResetPassword = (id: string) => {
-    setSelectedModeratorId(id);
-    resetPasswordForm.reset();
-    setResetPasswordDialogOpen(true);
-  };
-  
-  const handleSaveNewPassword = async (values: ResetPasswordFormValues) => {
-    if (!selectedModeratorId) return;
+
+  const handleClassToggle = (moderatorId: string, classCode: string, isAssigned: boolean) => {
+    const moderator = moderators.find(mod => mod.id === moderatorId);
+    if (!moderator) return;
+
+    let updatedClasses: string[];
     
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.admin.updateUserById(
-        selectedModeratorId,
-        { password: values.password }
-      );
-      
-      if (error) throw error;
-      
-      setResetPasswordDialogOpen(false);
-      toast.success('Password reset successfully');
-    } catch (error: any) {
-      console.error('Error resetting password:', error);
-      toast.error(`Failed to reset password: ${error.message}`);
-    } finally {
-      setIsLoading(false);
+    if (isAssigned) {
+      updatedClasses = [...moderator.assignedClasses, classCode];
+    } else {
+      updatedClasses = moderator.assignedClasses.filter(code => code !== classCode);
     }
+
+    updateModeratorClasses(moderatorId, updatedClasses);
   };
-  
-  const filteredModerators = moderators.filter(mod => 
-    mod.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (mod.name && mod.name.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-  
-  // Format date for display
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Never';
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(date);
+
+  const handleOpenDialog = () => {
+    setDialogOpen(true);
+    setSelectedUser(null);
+    setNewEmail('');
+    setSelectedClasses([]);
+    setSearchQuery('');
+    setSearchResults([]);
+    setActiveTab('existing');
   };
 
   return (
@@ -347,36 +324,29 @@ const ModeratorManagementPage: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold text-islamic-primary">Moderator Management</h1>
             <p className="text-muted-foreground">
-              Manage moderators and their class assignments
+              Manage access to class applications for moderators
             </p>
           </div>
           
           <Button 
             className="bg-islamic-primary hover:bg-islamic-primary/90"
-            onClick={() => {
-              moderatorForm.reset();
-              setAddDialogOpen(true);
-            }}
+            onClick={handleOpenDialog}
             disabled={isLoading}
           >
-            <UserPlus className="mr-2 h-4 w-4" />
+            <PlusCircle className="mr-2 h-4 w-4" />
             Add Moderator
           </Button>
         </div>
         
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Moderators</CardTitle>
-            <div className="relative">
-              <Input
-                placeholder="Search by name or email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+          <CardHeader>
+            <CardTitle>Moderators</CardTitle>
+            <CardDescription>
+              Manage moderators and their assigned classes
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading && moderators.length === 0 ? (
+            {isLoading ? (
               <div className="flex justify-center p-6">
                 <p>Loading moderators...</p>
               </div>
@@ -385,70 +355,59 @@ const ModeratorManagementPage: React.FC = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
+                      <TableHead>Name</TableHead>
                       <TableHead>Assigned Classes</TableHead>
-                      <TableHead>Last Active</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredModerators.length > 0 ? (
-                      filteredModerators.map(moderator => (
+                    {moderators.length > 0 ? (
+                      moderators.map(moderator => (
                         <TableRow key={moderator.id}>
-                          <TableCell className="font-medium">{moderator.name || 'N/A'}</TableCell>
-                          <TableCell>{moderator.email}</TableCell>
+                          <TableCell className="font-medium">{moderator.email}</TableCell>
+                          <TableCell>{moderator.name || '-'}</TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
-                              {moderator.classes && moderator.classes.length > 0 ? (
-                                moderator.classes.map(classCode => (
-                                  <span key={classCode} className="px-2 py-1 text-xs bg-islamic-primary/10 text-islamic-primary rounded-md">
-                                    {classCode}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="text-muted-foreground">No classes assigned</span>
-                              )}
+                              {classes.map(cls => (
+                                <div key={cls.code} className="flex items-center mb-1 mr-4">
+                                  <Checkbox
+                                    id={`${moderator.id}-${cls.code}`}
+                                    checked={moderator.assignedClasses.includes(cls.code)}
+                                    onCheckedChange={(checked) => {
+                                      handleClassToggle(moderator.id, cls.code, !!checked);
+                                    }}
+                                    disabled={isLoading}
+                                  />
+                                  <label
+                                    htmlFor={`${moderator.id}-${cls.code}`}
+                                    className="ml-2 text-sm font-medium"
+                                  >
+                                    {cls.name} ({cls.code})
+                                  </label>
+                                </div>
+                              ))}
+                              {classes.length === 0 && <span className="text-muted-foreground">No classes configured</span>}
                             </div>
                           </TableCell>
-                          <TableCell>{formatDate(moderator.lastActive)}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                size="icon"
-                                variant="outline"
-                                className="h-8 w-8"
-                                onClick={() => handleEditClasses(moderator)}
-                                disabled={isLoading}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="outline"
-                                className="h-8 w-8"
-                                onClick={() => handleResetPassword(moderator.id)}
-                                disabled={isLoading}
-                              >
-                                <Key className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="outline"
-                                className="h-8 w-8 text-red-500 hover:text-red-600"
-                                onClick={() => handleDeleteModerator(moderator.id)}
-                                disabled={isLoading}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 px-2 text-red-500 hover:text-red-600"
+                              onClick={() => removeModerator(moderator.id)}
+                              disabled={isLoading}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Remove
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                          {searchTerm ? 'No moderators found matching your search.' : 'No moderators found. Add your first moderator.'}
+                        <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                          No moderators added yet. Add your first moderator.
                         </TableCell>
                       </TableRow>
                     )}
@@ -459,222 +418,133 @@ const ModeratorManagementPage: React.FC = () => {
           </CardContent>
         </Card>
         
-        {/* Add Moderator Dialog */}
-        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="sm:max-w-[600px] bg-background">
             <DialogHeader>
               <DialogTitle>Add New Moderator</DialogTitle>
-              <DialogDescription>Create a new moderator account and assign classes</DialogDescription>
+              <DialogDescription>
+                Add a new moderator and assign classes they can manage
+              </DialogDescription>
             </DialogHeader>
             
-            <Form {...moderatorForm}>
-              <form onSubmit={moderatorForm.handleSubmit(handleAddModerator)} className="space-y-4">
-                <FormField
-                  control={moderatorForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="email" placeholder="Enter email address" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={moderatorForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="password" placeholder="Enter temporary password" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={moderatorForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Enter full name" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={moderatorForm.control}
-                  name="selectedClasses"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Assign Classes</FormLabel>
-                      <div className="flex flex-wrap gap-2">
-                        {classes.map(cls => (
-                          <Button
-                            key={cls.code}
-                            type="button"
-                            variant={field.value.includes(cls.code) ? "default" : "outline"}
-                            onClick={() => {
-                              const updatedClasses = field.value.includes(cls.code)
-                                ? field.value.filter(c => c !== cls.code)
-                                : [...field.value, cls.code];
-                              field.onChange(updatedClasses);
-                            }}
-                            className={field.value.includes(cls.code) ? "bg-islamic-primary" : ""}
-                          >
-                            {cls.name} ({cls.code})
-                          </Button>
-                        ))}
-                      </div>
-                      <FormDescription>
-                        Assign classes that this moderator will be responsible for
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <DialogFooter>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="existing">Existing User</TabsTrigger>
+                <TabsTrigger value="new">New User</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="existing" className="space-y-4 py-4">
+                <div className="flex space-x-2">
+                  <Input
+                    placeholder="Search users by email or name"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="flex-1"
+                  />
                   <Button 
                     type="button" 
-                    variant="outline" 
-                    onClick={() => setAddDialogOpen(false)}
-                    disabled={isLoading}
+                    onClick={searchUsers} 
+                    disabled={searchLoading || !searchQuery.trim()}
+                    variant="outline"
                   >
-                    Cancel
+                    <Search className="h-4 w-4" />
                   </Button>
-                  <Button
-                    type="submit"
-                    className="bg-islamic-primary hover:bg-islamic-primary/90"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Adding...' : 'Add Moderator'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-        
-        {/* Edit Classes Dialog */}
-        <Dialog open={classDialogOpen} onOpenChange={setClassDialogOpen}>
-          <DialogContent className="sm:max-w-[600px] bg-background">
-            <DialogHeader>
-              <DialogTitle>Edit Assigned Classes</DialogTitle>
-              <DialogDescription>Update class assignments for this moderator</DialogDescription>
-            </DialogHeader>
+                </div>
+                
+                {searchLoading ? (
+                  <div className="text-center py-4">Searching...</div>
+                ) : (
+                  <div className="max-h-40 overflow-y-auto border rounded-md divide-y">
+                    {searchResults.length === 0 ? (
+                      <div className="p-3 text-center text-muted-foreground text-sm">
+                        {searchQuery ? 'No users found' : 'Enter a search term to find users'}
+                      </div>
+                    ) : (
+                      searchResults.map(user => (
+                        <div 
+                          key={user.id} 
+                          className={`p-3 hover:bg-muted cursor-pointer ${selectedUser === user.id ? 'bg-muted' : ''}`}
+                          onClick={() => setSelectedUser(user.id)}
+                        >
+                          <div className="font-medium">{user.email}</div>
+                          {user.raw_user_meta_data?.name && (
+                            <div className="text-sm text-muted-foreground">{user.raw_user_meta_data.name}</div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="new" className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <label htmlFor="new-email" className="text-sm font-medium">Email Address</label>
+                  <Input
+                    id="new-email"
+                    type="email"
+                    placeholder="user@example.com"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    User will receive an invitation email to set up their account
+                  </p>
+                </div>
+              </TabsContent>
+            </Tabs>
             
-            <Form {...moderatorForm}>
-              <div className="space-y-4">
-                <FormField
-                  control={moderatorForm.control}
-                  name="selectedClasses"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex flex-wrap gap-2">
-                        {classes.map(cls => (
-                          <Button
-                            key={cls.code}
-                            type="button"
-                            variant={field.value.includes(cls.code) ? "default" : "outline"}
-                            onClick={() => {
-                              const updatedClasses = field.value.includes(cls.code)
-                                ? field.value.filter(c => c !== cls.code)
-                                : [...field.value, cls.code];
-                              field.onChange(updatedClasses);
-                            }}
-                            className={field.value.includes(cls.code) ? "bg-islamic-primary" : ""}
-                          >
-                            {cls.name} ({cls.code})
-                          </Button>
-                        ))}
+            <div className="space-y-2 py-2">
+              <label className="text-sm font-medium">Assign Classes</label>
+              <div className="border rounded-md p-3 max-h-40 overflow-y-auto">
+                {classes.length === 0 ? (
+                  <div className="text-center text-muted-foreground text-sm">No classes configured</div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2">
+                    {classes.map(cls => (
+                      <div key={cls.code} className="flex items-center">
+                        <Checkbox
+                          id={`class-${cls.code}`}
+                          checked={selectedClasses.includes(cls.code)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedClasses(prev => [...prev, cls.code]);
+                            } else {
+                              setSelectedClasses(prev => prev.filter(code => code !== cls.code));
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor={`class-${cls.code}`}
+                          className="ml-2 text-sm font-medium"
+                        >
+                          {cls.name} ({cls.code})
+                        </label>
                       </div>
-                      <FormDescription>
-                        Assign classes that this moderator will be responsible for
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <DialogFooter>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setClassDialogOpen(false)}
-                    disabled={isLoading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    className="bg-islamic-primary hover:bg-islamic-primary/90"
-                    onClick={handleSaveClasses}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                </DialogFooter>
+                    ))}
+                  </div>
+                )}
               </div>
-            </Form>
-          </DialogContent>
-        </Dialog>
-        
-        {/* Reset Password Dialog */}
-        <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
-          <DialogContent className="sm:max-w-[500px] bg-background">
-            <DialogHeader>
-              <DialogTitle>Reset Moderator Password</DialogTitle>
-              <DialogDescription>Set a new password for this moderator</DialogDescription>
-            </DialogHeader>
+            </div>
             
-            <Form {...resetPasswordForm}>
-              <form onSubmit={resetPasswordForm.handleSubmit(handleSaveNewPassword)} className="space-y-4">
-                <FormField
-                  control={resetPasswordForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>New Password</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="password" placeholder="Enter new password" />
-                      </FormControl>
-                      <FormDescription>
-                        Password must be at least 8 characters
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <DialogFooter>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setResetPasswordDialogOpen(false)}
-                    disabled={isLoading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="bg-islamic-primary hover:bg-islamic-primary/90"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Resetting...' : 'Reset Password'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
+            <DialogFooter className="pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setDialogOpen(false)}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                className="bg-islamic-primary hover:bg-islamic-primary/90"
+                onClick={handleAddModerator}
+                disabled={isLoading || (activeTab === 'existing' && !selectedUser) || (activeTab === 'new' && !newEmail) || selectedClasses.length === 0}
+              >
+                {isLoading ? 'Adding...' : 'Add Moderator'}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

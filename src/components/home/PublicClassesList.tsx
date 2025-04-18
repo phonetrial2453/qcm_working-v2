@@ -12,6 +12,7 @@ interface ClassInfo {
   code: string;
   name: string;
   description: string | null;
+  template?: string | null;
   validation_rules: ValidationRules | null;
   created_at?: string;
   updated_at?: string;
@@ -41,6 +42,7 @@ const PublicClassesList: React.FC = () => {
           code: cls.code,
           name: cls.name,
           description: cls.description,
+          template: cls.template,
           validation_rules: cls.validation_rules as ValidationRules,
           created_at: cls.created_at,
           updated_at: cls.updated_at
@@ -84,6 +86,16 @@ To apply for this class, please register and submit an application through our p
     navigator.clipboard.writeText(classDetails);
     toast.success('Class information copied to clipboard');
   };
+  
+  const copyApplicationTemplate = (classInfo: ClassInfo) => {
+    if (!classInfo.template) {
+      toast.error('No application template available for this class');
+      return;
+    }
+    
+    navigator.clipboard.writeText(classInfo.template);
+    toast.success('Application template copied to clipboard');
+  };
 
   return (
     <Card className="w-full">
@@ -110,7 +122,7 @@ To apply for this class, please register and submit an application through our p
                         <p className="text-sm font-mono text-muted-foreground">Code: {classInfo.code}</p>
                       </div>
                       <Button variant="ghost" size="icon" onClick={() => copyClassInfo(classInfo)} title="Copy class information">
-                        <Copy className="h-4 w-4" />
+                        <Info className="h-4 w-4" />
                       </Button>
                     </div>
                   </CardHeader>
@@ -139,9 +151,12 @@ To apply for this class, please register and submit an application through our p
                       </ul>
                     </div>
                   </CardContent>
-                  <CardFooter className="pt-0 px-6 pb-4">
+                  <CardFooter className="pt-0 px-6 pb-4 flex gap-2">
                     <Button variant="outline" size="sm" className="w-full" onClick={() => copyClassInfo(classInfo)}>
-                      Copy Details
+                      <Info className="h-4 w-4 mr-2" /> Copy Info
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-full" onClick={() => copyApplicationTemplate(classInfo)}>
+                      <Copy className="h-4 w-4 mr-2" /> Copy Template
                     </Button>
                   </CardFooter>
                 </Card>
