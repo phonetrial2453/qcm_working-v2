@@ -89,9 +89,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Fetching roles for user:', userId);
       
-      // Use the function with explicit typing for the response
+      // Use the function but handle the typing issue by using a generic type
       const { data, error } = await supabase
-        .rpc('get_user_roles', { user_id: userId }) as { 
+        .rpc('get_user_roles', { user_id: userId }, { 
+          count: 'exact',
+        }) as unknown as { 
           data: string[] | null; 
           error: any;
         };

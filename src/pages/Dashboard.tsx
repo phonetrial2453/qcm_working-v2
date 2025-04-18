@@ -22,9 +22,11 @@ const Dashboard: React.FC = () => {
         console.log('isAdmin status:', isAdmin);
         
         try {
-          // Try to get roles using the RPC function with proper typing
+          // Use the function with correct typing
           const { data, error } = await supabase
-            .rpc('get_user_roles', { user_id: user.id }) as {
+            .rpc('get_user_roles', { user_id: user.id }, {
+              count: 'exact',
+            }) as unknown as {
               data: string[] | null;
               error: any;
             };
