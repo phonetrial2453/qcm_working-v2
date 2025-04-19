@@ -14,7 +14,7 @@ import { Search, Copy, ArrowRight } from 'lucide-react';
 const StatusCheckPage: React.FC = () => {
   const [applicationId, setApplicationId] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const { getApplication } = useApplications();
+  const { getApplication, applications } = useApplications();
   const navigate = useNavigate();
   
   const [searchResult, setSearchResult] = useState<{
@@ -46,7 +46,7 @@ const StatusCheckPage: React.FC = () => {
       }
       
       setIsSearching(false);
-    }, 1000);
+    }, 500);
   };
   
   const copyToClipboard = () => {
@@ -55,8 +55,8 @@ const StatusCheckPage: React.FC = () => {
     const app = searchResult.application;
     const statusInfo = `
 Application ID: ${app.id}
-Name: ${app.studentDetails.fullName}
-Mobile: ${app.studentDetails.mobile}
+Name: ${app.studentDetails?.fullName || 'Unknown'}
+Mobile: ${app.studentDetails?.mobile || 'N/A'}
 Status: ${app.status.toUpperCase()}
 ${app.remarks ? `Remarks: ${app.remarks}` : ''}
     `.trim();
@@ -129,7 +129,7 @@ ${app.remarks ? `Remarks: ${app.remarks}` : ''}
                   <div className="rounded-md border p-4">
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h3 className="font-medium">{searchResult.application.studentDetails.fullName}</h3>
+                        <h3 className="font-medium">{searchResult.application.studentDetails?.fullName || 'Unknown'}</h3>
                         <p className="text-sm text-muted-foreground">ID: {searchResult.application.id}</p>
                       </div>
                       {getStatusBadge(searchResult.application.status)}
@@ -143,7 +143,7 @@ ${app.remarks ? `Remarks: ${app.remarks}` : ''}
                       
                       <div>
                         <p className="text-muted-foreground">Mobile:</p>
-                        <p>{searchResult.application.studentDetails.mobile}</p>
+                        <p>{searchResult.application.studentDetails?.mobile || 'N/A'}</p>
                       </div>
                       
                       {searchResult.application.remarks && (

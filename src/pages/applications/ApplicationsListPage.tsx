@@ -29,7 +29,7 @@ const ApplicationsListPage: React.FC = () => {
   const [filteredApplications, setFilteredApplications] = useState(applications);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [classFilter, setClassFilter] = useState('all'); // Changed from empty string to 'all'
+  const [classFilter, setClassFilter] = useState('all');
   
   // Get class code from URL if provided
   useEffect(() => {
@@ -50,7 +50,7 @@ const ApplicationsListPage: React.FC = () => {
     }
     
     // Apply class filter
-    if (classFilter && classFilter !== 'all') { // Changed condition to check for 'all'
+    if (classFilter && classFilter !== 'all') {
       filtered = filtered.filter(app => app.classCode === classFilter);
     }
     
@@ -64,9 +64,9 @@ const ApplicationsListPage: React.FC = () => {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(app => 
         app.id.toLowerCase().includes(term) ||
-        app.studentDetails.fullName.toLowerCase().includes(term) ||
-        app.studentDetails.mobile.includes(term) ||
-        app.otherDetails.email.toLowerCase().includes(term)
+        (app.studentDetails?.fullName || '').toLowerCase().includes(term) ||
+        (app.studentDetails?.mobile || '').includes(term) ||
+        (app.otherDetails?.email || '').toLowerCase().includes(term)
       );
     }
     
@@ -204,8 +204,8 @@ const ApplicationsListPage: React.FC = () => {
                     filteredApplications.map(application => (
                       <TableRow key={application.id}>
                         <TableCell className="font-medium">{application.id}</TableCell>
-                        <TableCell>{application.studentDetails.fullName}</TableCell>
-                        <TableCell>{application.studentDetails.mobile}</TableCell>
+                        <TableCell>{application.studentDetails?.fullName || 'Unknown'}</TableCell>
+                        <TableCell>{application.studentDetails?.mobile || 'N/A'}</TableCell>
                         <TableCell>{application.classCode}</TableCell>
                         <TableCell>{getStatusBadge(application.status)}</TableCell>
                         <TableCell>{formatDate(application.createdAt)}</TableCell>
