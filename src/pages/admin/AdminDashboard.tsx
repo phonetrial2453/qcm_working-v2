@@ -1,3 +1,4 @@
+
 import React from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,7 +65,7 @@ const AdminDashboard: React.FC = () => {
               <CardContent>
                 {applications.slice(0, 5).map(app => (
                   <div key={app.id} className="py-2 border-b last:border-b-0">
-                    {app.student_details?.name} - {app.class_code}
+                    {app.studentDetails?.fullName} - {app.classCode}
                   </div>
                 ))}
               </CardContent>

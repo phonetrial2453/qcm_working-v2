@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from '@/components/ui/sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -53,10 +54,19 @@ export interface StudentApplication {
 // Define classes
 export interface ClassInfo extends ClassRecord {
   description: string;
+  template?: string;
+}
+
+// Define validation rules type
+export interface ValidationRulesType {
+  allowedStates?: string[];
+  allowedCities?: string[];
+  ageRange?: { min: number; max: number };
+  minimumQualification?: string;
 }
 
 // Define validation rules
-export const VALIDATION_RULES = {
+export const VALIDATION_RULES: ValidationRulesType = {
   allowedStates: ['Tamil Nadu', 'Telangana', 'Andhra Pradesh'],
   allowedCities: ['Hyderabad', 'Chennai', 'Mahboobnagar', 'Visakhapatnam', 'Vijayawada'],
   ageRange: { min: 25, max: 45 },
@@ -66,7 +76,8 @@ export const VALIDATION_RULES = {
 interface ApplicationContextType {
   applications: StudentApplication[];
   classes: ClassInfo[];
-  VALIDATION_RULES: typeof VALIDATION_RULES;
+  VALIDATION_RULES: ValidationRulesType;
+  users: any[]; // Add users property for admin dashboard
   addApplication: (application: Omit<StudentApplication, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
   updateApplication: (id: string, updates: Partial<StudentApplication>) => Promise<boolean>;
   getApplication: (id: string) => StudentApplication | undefined;
@@ -101,17 +112,39 @@ const safeParseJson = <T extends object>(jsonValue: Json | null, defaultValue: T
 export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [applications, setApplications] = useState<StudentApplication[]>([]);
   const [classes, setClasses] = useState<ClassInfo[]>([]);
+  const [users, setUsers] = useState<any[]>([]); // Add users state for admin dashboard
   const { user } = useAuth();
 
   useEffect(() => {
     if (user) {
       fetchApplications();
       fetchClasses();
+      // If user is admin, fetch users
+      if (user.app_metadata?.roles?.includes('admin')) {
+        fetchUsers();
+      }
     } else {
       // Even for non-authenticated users, fetch classes
       fetchClasses();
     }
   }, [user]);
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase.rpc('search_users', {
+        search_term: '',
+      });
+      
+      if (error) throw error;
+      
+      if (data) {
+        setUsers(data);
+      }
+    } catch (error: any) {
+      console.error('Error fetching users:', error);
+      toast.error('Failed to load users: ' + error.message);
+    }
+  };
 
   const fetchClasses = async () => {
     try {
@@ -126,6 +159,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
         const formattedClasses: ClassInfo[] = data.map(cls => ({
           ...cls,
           description: cls.description || '',
+          template: cls.template || '',
         }));
         
         setClasses(formattedClasses);
@@ -337,6 +371,20 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       classes.find(c => c.code === application.classCode)?.validation_rules : 
       undefined;
     
+    // Parse validation rules from JSON
+    let parsedRules: ValidationRulesType = VALIDATION_RULES;
+    if (classValidationRules) {
+      try {
+        if (typeof classValidationRules === 'string') {
+          parsedRules = JSON.parse(classValidationRules) as ValidationRulesType;
+        } else if (typeof classValidationRules === 'object') {
+          parsedRules = classValidationRules as unknown as ValidationRulesType;
+        }
+      } catch (error) {
+        console.error('Error parsing validation rules:', error);
+      }
+    }
+    
     const mobileRegex = /^[6-9]\d{9}$/;
     if (application.studentDetails?.mobile && !mobileRegex.test(application.studentDetails.mobile)) {
       errors.push('Mobile number must be a 10-digit number starting with 6-9');
@@ -347,23 +395,23 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
     
     if (application.hometownDetails?.state) {
-      const allowedStates = classValidationRules?.allowedStates || VALIDATION_RULES.allowedStates;
-      if (!allowedStates.includes(application.hometownDetails.state)) {
+      const allowedStates = parsedRules.allowedStates || VALIDATION_RULES.allowedStates;
+      if (allowedStates && !allowedStates.includes(application.hometownDetails.state)) {
         errors.push(`Hometown state must be one of: ${allowedStates.join(', ')}`);
       }
     }
     
     if (application.currentResidence?.state) {
-      const allowedStates = classValidationRules?.allowedStates || VALIDATION_RULES.allowedStates;
-      if (!allowedStates.includes(application.currentResidence.state)) {
+      const allowedStates = parsedRules.allowedStates || VALIDATION_RULES.allowedStates;
+      if (allowedStates && !allowedStates.includes(application.currentResidence.state)) {
         errors.push(`Current residence state must be one of: ${allowedStates.join(', ')}`);
       }
     }
     
     if (application.otherDetails?.age) {
-      const ageRange = classValidationRules?.ageRange || VALIDATION_RULES.ageRange;
+      const ageRange = parsedRules.ageRange || VALIDATION_RULES.ageRange;
       const age = application.otherDetails.age;
-      if (age < ageRange.min || age > ageRange.max) {
+      if (ageRange && (age < ageRange.min || age > ageRange.max)) {
         errors.push(`Age should be between ${ageRange.min} and ${ageRange.max} years`);
       }
     }
@@ -383,6 +431,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       applications,
       classes,
       VALIDATION_RULES,
+      users, // Add users to the context
       addApplication,
       updateApplication,
       getApplication,
