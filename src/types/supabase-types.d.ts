@@ -24,3 +24,47 @@ export type ValidationRules = {
   allowedStates: string[];
   minimumQualification: string;
 };
+
+// Add StudentApplication type
+export interface StudentApplication {
+  id?: string;
+  classCode: string;
+  status: string;
+  createdAt?: string;
+  studentDetails: {
+    fullName: string;
+    mobile: string;
+    whatsapp?: string;
+    [key: string]: any;
+  };
+  otherDetails: {
+    email: string;
+    age?: number;
+    qualification?: string;
+    profession?: string;
+    [key: string]: any;
+  };
+  hometownDetails: {
+    area?: string;
+    city?: string;
+    district?: string;
+    state?: string;
+    [key: string]: any;
+  };
+  currentResidence: {
+    area?: string;
+    mandal?: string;
+    city?: string;
+    state?: string;
+    [key: string]: any;
+  };
+  referredBy: {
+    fullName?: string;
+    mobile?: string;
+    studentId?: string;
+    batch?: string;
+    [key: string]: any;
+  };
+  remarks?: string;
+  [key: string]: any;
+}

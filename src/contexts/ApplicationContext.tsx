@@ -1,35 +1,15 @@
 
-import { ClassRecord, ValidationRules } from '@/types/supabase-types';
+import { ClassRecord, ValidationRules, StudentApplication } from '@/types/supabase-types';
+import { Json } from '@/integrations/supabase/types';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 
-interface Application {
+// Using the StudentApplication interface as the base for our Application type
+interface Application extends StudentApplication {
   id: string;
-  classCode: string;
-  status: string;
   createdAt: string;
-  studentDetails: {
-    fullName: string;
-    mobile: string;
-    [key: string]: any;
-  };
-  otherDetails: {
-    email: string;
-    [key: string]: any;
-  };
-  hometownDetails: {
-    [key: string]: any;
-  };
-  currentResidence: {
-    [key: string]: any;
-  };
-  referredBy: {
-    [key: string]: any;
-  };
-  remarks?: string;
-  [key: string]: any;
 }
 
 interface Class {
@@ -118,20 +98,54 @@ export const ApplicationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
 
       // Transform the raw data into our Application interface format
-      const formattedApplications: Application[] = data ? data.map(app => ({
-        id: app.id,
-        classCode: app.class_code,
-        status: app.status,
-        createdAt: app.created_at,
-        studentDetails: app.student_details || { fullName: 'Unknown', mobile: 'Unknown' },
-        otherDetails: app.other_details || { email: '' },
-        hometownDetails: app.hometown_details || {},
-        currentResidence: app.current_residence || {},
-        referredBy: app.referred_by || {},
-        remarks: app.remarks || '',
-      })) : [];
+      if (data) {
+        const formattedApplications: Application[] = data.map(app => {
+          // Ensure we have proper objects for nested data
+          const studentDetails = typeof app.student_details === 'object' && app.student_details !== null
+            ? app.student_details
+            : { fullName: 'Unknown', mobile: 'Unknown' };
+            
+          const otherDetails = typeof app.other_details === 'object' && app.other_details !== null
+            ? app.other_details
+            : { email: '' };
+            
+          const hometownDetails = typeof app.hometown_details === 'object' && app.hometown_details !== null
+            ? app.hometown_details
+            : {};
+            
+          const currentResidence = typeof app.current_residence === 'object' && app.current_residence !== null
+            ? app.current_residence
+            : {};
+            
+          const referredBy = typeof app.referred_by === 'object' && app.referred_by !== null
+            ? app.referred_by
+            : {};
+            
+          return {
+            id: app.id,
+            classCode: app.class_code,
+            status: app.status,
+            createdAt: app.created_at,
+            studentDetails: {
+              fullName: studentDetails.fullName || 'Unknown',
+              mobile: studentDetails.mobile || 'Unknown',
+              ...studentDetails
+            },
+            otherDetails: {
+              email: otherDetails.email || '',
+              ...otherDetails
+            },
+            hometownDetails,
+            currentResidence,
+            referredBy,
+            remarks: app.remarks || '',
+          };
+        });
 
-      setApplications(formattedApplications);
+        setApplications(formattedApplications);
+      } else {
+        setApplications([]);
+      }
     } catch (err: any) {
       console.error('Error fetching applications:', err);
       toast.error(`Error fetching applications: ${err.message}`);
@@ -203,8 +217,12 @@ export const ApplicationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Add a new application
   const addApplication = async (application: Omit<Application, 'id' | 'createdAt'>): Promise<string> => {
     try {
+      // Generate a unique ID for the application
+      const uuid = crypto.randomUUID();
+
       // Transform the data to database format
       const dbData = {
+        id: uuid,
         class_code: application.classCode,
         student_details: application.studentDetails,
         other_details: application.otherDetails,
@@ -232,11 +250,21 @@ export const ApplicationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         classCode: newApp.class_code,
         status: newApp.status,
         createdAt: newApp.created_at,
-        studentDetails: newApp.student_details,
-        otherDetails: newApp.other_details,
-        hometownDetails: newApp.hometown_details,
-        currentResidence: newApp.current_residence,
-        referredBy: newApp.referred_by,
+        studentDetails: typeof newApp.student_details === 'object' && newApp.student_details !== null
+          ? { fullName: newApp.student_details.fullName || 'Unknown', mobile: newApp.student_details.mobile || 'Unknown', ...newApp.student_details }
+          : { fullName: 'Unknown', mobile: 'Unknown' },
+        otherDetails: typeof newApp.other_details === 'object' && newApp.other_details !== null
+          ? { email: newApp.other_details.email || '', ...newApp.other_details }
+          : { email: '' },
+        hometownDetails: typeof newApp.hometown_details === 'object' && newApp.hometown_details !== null 
+          ? newApp.hometown_details 
+          : {},
+        currentResidence: typeof newApp.current_residence === 'object' && newApp.current_residence !== null 
+          ? newApp.current_residence 
+          : {},
+        referredBy: typeof newApp.referred_by === 'object' && newApp.referred_by !== null 
+          ? newApp.referred_by 
+          : {},
         remarks: newApp.remarks,
       };
       
@@ -268,8 +296,8 @@ export const ApplicationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
     
     // Check age if provided
-    if (rules.ageRange && application.studentDetails?.age) {
-      const age = parseInt(application.studentDetails.age.toString());
+    if (rules.ageRange && application.otherDetails?.age) {
+      const age = parseInt(application.otherDetails.age.toString());
       if (age < rules.ageRange.min || age > rules.ageRange.max) {
         errors.push(`Age must be between ${rules.ageRange.min} and ${rules.ageRange.max}`);
       }
@@ -285,10 +313,10 @@ export const ApplicationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
     
     // Check qualification if provided
-    if (rules.minimumQualification && application.studentDetails?.qualification) {
+    if (rules.minimumQualification && application.otherDetails?.qualification) {
       const qualifications = ['none', 'primary', 'secondary', 'diploma', 'bachelors', 'masters', 'doctorate'];
       const reqIndex = qualifications.indexOf(rules.minimumQualification);
-      const userIndex = qualifications.indexOf(application.studentDetails.qualification.toString().toLowerCase());
+      const userIndex = qualifications.indexOf(application.otherDetails.qualification.toString().toLowerCase());
       
       if (userIndex < reqIndex) {
         errors.push(`Minimum qualification required is ${rules.minimumQualification}`);
@@ -336,3 +364,5 @@ export const useApplications = () => {
   }
   return context;
 };
+
+export type { Class, User, Application };

@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApplications, StudentApplication } from '@/contexts/ApplicationContext';
+import { useApplications, Application } from '@/contexts/ApplicationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +14,7 @@ import { toast } from '@/components/ui/sonner';
 import { AlertCircle, Check, X, List, PlusCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-interface ParsedApplication extends Partial<StudentApplication> {
+interface ParsedApplication extends Partial<Application> {
   valid: boolean;
   errors: string[];
   warnings: string[];
@@ -92,7 +91,7 @@ const NewApplicationPage: React.FC = () => {
     
     const qualification = parsedApplication.otherDetails?.qualification || '';
     const graduateKeywords = ['graduate', 'b.', 'bachelor', 'm.', 'master', 'ph.d', 'doctorate'];
-    if (!graduateKeywords.some(keyword => qualification.toLowerCase().includes(keyword))) {
+    if (!graduateKeywords.some(keyword => qualification.toString().toLowerCase().includes(keyword))) {
       warnings.push('Qualification may not be graduate-level or above');
     }
     
@@ -104,8 +103,8 @@ const NewApplicationPage: React.FC = () => {
     };
   };
 
-  const parseApplicationText = (text: string, classCode: string): Partial<StudentApplication> => {
-    const result: Partial<StudentApplication> = {
+  const parseApplicationText = (text: string, classCode: string): Partial<Application> => {
+    const result: Partial<Application> = {
       classCode,
       status: 'pending',
       studentDetails: {
@@ -246,7 +245,6 @@ const NewApplicationPage: React.FC = () => {
   };
 
   const splitMultipleApplications = (text: string) => {
-    // Use the "=====================" as separator
     const applicationTexts = text.split(/={20,}/).filter(app => app.trim().length > 0);
     setMultipleApplications(applicationTexts);
     toast.success(`Found ${applicationTexts.length} applications`);
@@ -271,10 +269,9 @@ const NewApplicationPage: React.FC = () => {
     try {
       for (const app of validApplications) {
         try {
-          // Remove the validation fields we added
           const { valid, errors, warnings, ...cleanApp } = app;
           
-          await addApplication(cleanApp as Omit<StudentApplication, 'id' | 'createdAt' | 'updatedAt'>);
+          await addApplication(cleanApp as Omit<Application, 'id' | 'createdAt' | 'updatedAt'>);
           successCount++;
         } catch (error) {
           console.error('Error submitting application:', error);
@@ -310,33 +307,48 @@ const NewApplicationPage: React.FC = () => {
       
       switch (field) {
         case 'studentDetails':
-          updated[appIndex].studentDetails = {
-            ...updated[appIndex].studentDetails!,
-            [subField]: value
+          updated[appIndex] = {
+            ...updated[appIndex],
+            studentDetails: {
+              ...updated[appIndex].studentDetails,
+              [subField]: value
+            }
           };
           break;
         case 'hometownDetails':
-          updated[appIndex].hometownDetails = {
-            ...updated[appIndex].hometownDetails!,
-            [subField]: value
+          updated[appIndex] = {
+            ...updated[appIndex],
+            hometownDetails: {
+              ...updated[appIndex].hometownDetails,
+              [subField]: value
+            }
           };
           break;
         case 'currentResidence':
-          updated[appIndex].currentResidence = {
-            ...updated[appIndex].currentResidence!,
-            [subField]: value
+          updated[appIndex] = {
+            ...updated[appIndex],
+            currentResidence: {
+              ...updated[appIndex].currentResidence,
+              [subField]: value
+            }
           };
           break;
         case 'otherDetails':
-          updated[appIndex].otherDetails = {
-            ...updated[appIndex].otherDetails!,
-            [subField]: value
+          updated[appIndex] = {
+            ...updated[appIndex],
+            otherDetails: {
+              ...updated[appIndex].otherDetails,
+              [subField]: value
+            }
           };
           break;
         case 'referredBy':
-          updated[appIndex].referredBy = {
-            ...updated[appIndex].referredBy!,
-            [subField]: value
+          updated[appIndex] = {
+            ...updated[appIndex],
+            referredBy: {
+              ...updated[appIndex].referredBy,
+              [subField]: value
+            }
           };
           break;
       }
