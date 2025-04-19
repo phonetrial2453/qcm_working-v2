@@ -1,21 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Copy, Download, Info } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
-import { ValidationRules } from '@/types/supabase-types';
+import { ClassRecord, ValidationRules } from '@/types/supabase-types';
 
-interface ClassInfo {
-  id?: string;
-  code: string;
-  name: string;
-  description: string | null;
-  template?: string | null;
-  validation_rules: ValidationRules | null;
-  created_at?: string;
-  updated_at?: string;
+interface ClassInfo extends ClassRecord {
+  description: string;
 }
 
 const PublicClassesList: React.FC = () => {
@@ -38,14 +30,8 @@ const PublicClassesList: React.FC = () => {
       
       if (data) {
         const formattedClasses: ClassInfo[] = data.map(cls => ({
-          id: cls.id,
-          code: cls.code,
-          name: cls.name,
-          description: cls.description,
-          template: cls.template,
-          validation_rules: cls.validation_rules as ValidationRules,
-          created_at: cls.created_at,
-          updated_at: cls.updated_at
+          ...cls,
+          description: cls.description || '',
         }));
         
         setClasses(formattedClasses);

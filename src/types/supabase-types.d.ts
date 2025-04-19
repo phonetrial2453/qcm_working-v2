@@ -2,9 +2,15 @@
 import { Database } from '@/integrations/supabase/types';
 
 // Custom type for classes
-export type ClassRecord = Database['public']['Tables']['classes']['Row'];
-export type ClassInsert = Database['public']['Tables']['classes']['Insert'];
-export type ClassUpdate = Database['public']['Tables']['classes']['Update'];
+export type ClassRecord = Database['public']['Tables']['classes']['Row'] & {
+  template?: string | null;
+};
+export type ClassInsert = Database['public']['Tables']['classes']['Insert'] & {
+  template?: string;
+};
+export type ClassUpdate = Database['public']['Tables']['classes']['Update'] & {
+  template?: string;
+};
 
 // Add other types as needed
 export type ModeratorClass = Database['public']['Tables']['moderator_classes']['Row'];

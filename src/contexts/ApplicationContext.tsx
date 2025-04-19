@@ -1,10 +1,9 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from '@/components/ui/sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { Json } from '@/integrations/supabase/types';
-import { ValidationRules } from '@/types/supabase-types';
+import { ClassRecord, ValidationRules } from '@/types/supabase-types';
 
 // Define application structure
 export interface StudentApplication {
@@ -52,12 +51,8 @@ export interface StudentApplication {
 }
 
 // Define classes
-export interface ClassInfo {
-  code: string;
-  name: string;
+export interface ClassInfo extends ClassRecord {
   description: string;
-  template?: string;
-  validation_rules?: ValidationRules;
 }
 
 // Define validation rules
@@ -129,11 +124,8 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       
       if (data) {
         const formattedClasses: ClassInfo[] = data.map(cls => ({
-          code: cls.code,
-          name: cls.name,
+          ...cls,
           description: cls.description || '',
-          template: cls.template,
-          validation_rules: cls.validation_rules as ValidationRules
         }));
         
         setClasses(formattedClasses);

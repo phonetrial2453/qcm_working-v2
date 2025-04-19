@@ -57,7 +57,7 @@ const ModeratorManagementPage: React.FC = () => {
 
       const moderatorIds = moderatorRoles.map(m => m.user_id);
       
-      // Get users from auth.users through RPC
+      // Fetch users directly from auth.users
       const { data: users, error: usersError } = await supabase.rpc('get_users_by_ids', {
         user_ids: moderatorIds
       });
