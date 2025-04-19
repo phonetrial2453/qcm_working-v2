@@ -44,7 +44,7 @@ interface AddModeratorForm {
 }
 
 const ModeratorManagementPage: React.FC = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin: currentUserIsAdmin } = useAuth();
   const { classes } = useApplications();
   const [users, setUsers] = useState<User[]>([]);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
@@ -53,7 +53,7 @@ const ModeratorManagementPage: React.FC = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [userIsAdmin, setUserIsAdmin] = useState(false);
   
   const { register, handleSubmit, reset, formState: { errors } } = useForm<AddModeratorForm>();
 
@@ -126,7 +126,7 @@ const ModeratorManagementPage: React.FC = () => {
   const onEditUser = async (userId: string) => {
     try {
       // Update user role
-      if (isAdmin) {
+      if (userIsAdmin) {
         // Check if user already has admin role
         const existingAdminRole = userRoles.find(ur => ur.user_id === userId && ur.role === 'admin');
         
@@ -185,7 +185,7 @@ const ModeratorManagementPage: React.FC = () => {
     setEditingUser(user);
     // Set initial values
     const isUserAdmin = userRoles.some(ur => ur.user_id === user.id && ur.role === 'admin');
-    setIsAdmin(isUserAdmin);
+    setUserIsAdmin(isUserAdmin);
     
     const userClasses = moderatorClasses
       .filter(mc => mc.user_id === user.id)
@@ -311,8 +311,8 @@ const ModeratorManagementPage: React.FC = () => {
                     <div className="flex items-center mb-2">
                       <Checkbox 
                         id="isAdmin" 
-                        checked={isAdmin}
-                        onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
+                        checked={userIsAdmin}
+                        onCheckedChange={(checked) => setUserIsAdmin(checked as boolean)}
                       />
                       <Label htmlFor="isAdmin" className="ml-2">Admin Access</Label>
                     </div>
@@ -328,13 +328,13 @@ const ModeratorManagementPage: React.FC = () => {
                             id={`class-${cls.code}`}
                             checked={selectedClasses.includes(cls.code)}
                             onCheckedChange={() => toggleClassSelection(cls.code)}
-                            disabled={isAdmin} // Admins have access to all classes
+                            disabled={userIsAdmin} // Admins have access to all classes
                           />
                           <Label htmlFor={`class-${cls.code}`} className="ml-2">{cls.name}</Label>
                         </div>
                       ))}
                     </div>
-                    {isAdmin && (
+                    {userIsAdmin && (
                       <p className="text-xs text-gray-500 mt-2">Admins automatically have access to all classes.</p>
                     )}
                   </div>

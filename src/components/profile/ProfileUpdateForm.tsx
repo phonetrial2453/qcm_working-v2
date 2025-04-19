@@ -32,12 +32,6 @@ const ProfileUpdateForm: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.functions.invoke('update-user-profile', {
-        body: { name },
-      });
-      
-      if (error) throw error;
-      
       // Call update function to update user metadata
       const { error: updateError } = await supabase.rpc('update_user_profile', {
         name,

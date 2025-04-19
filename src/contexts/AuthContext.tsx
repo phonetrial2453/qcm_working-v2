@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,6 +25,8 @@ interface AuthContextType {
   logout: (redirectTo?: string) => Promise<void>;
   // Add setUser function
   setUser: (user: ExtendedUser | null) => void;
+  // Add refreshUser function
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -217,6 +218,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Alias for signOut
   const logout = signOut;
 
+  // Add refreshUser function
+  const refreshUser = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // Create an extended user with additional properties
+        const extendedUser: ExtendedUser = {
+          ...user,
+          name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+          role: 'user' // Default role
+        };
+        setUser(extendedUser);
+        
+        // Fetch user role
+        fetchUserRole(user.id);
+      }
+    } catch (error: any) {
+      console.error('Error refreshing user:', error.message);
+    }
+  };
+
   // Computed properties
   const isAuthenticated = !!user;
   const isAdmin = adminStatus;
@@ -233,7 +256,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAdmin,
       login,
       logout,
-      setUser
+      setUser,
+      refreshUser
     }}>
       {children}
     </AuthContext.Provider>
