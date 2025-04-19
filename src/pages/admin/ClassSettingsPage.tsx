@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -35,7 +35,7 @@ const ClassSettingsPage: React.FC = () => {
   const [isSubmitting, setSubmitting] = useState(false);
   const { classes, refreshClasses } = useApplications();
   const { user } = useAuth();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const accessibleClasses = user?.role === 'admin'
     ? classes
@@ -71,7 +71,6 @@ const ClassSettingsPage: React.FC = () => {
     }
   }, [selectedClass, classes, form]);
 
-  // Fix the variable name to match the Class type property name
   const handleSubmit = async (data: FormData) => {
     setSubmitting(true);
     try {
@@ -98,7 +97,7 @@ const ClassSettingsPage: React.FC = () => {
       
       toast.success('Class settings updated successfully');
       await refreshClasses();
-      router.push('/admin/classes');
+      navigate('/admin/classes');
     } catch (error: any) {
       toast.error('Failed to update class: ' + error.message);
     } finally {
