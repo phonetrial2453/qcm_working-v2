@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -47,16 +48,20 @@ const PublicClassesList: React.FC = () => {
   const copyClassInfo = (classInfo: ClassInfo) => {
     const requirements = [];
     
-    if (classInfo.validation_rules?.ageRange) {
-      requirements.push(`Age Range: ${classInfo.validation_rules.ageRange.min} - ${classInfo.validation_rules.ageRange.max} years`);
-    }
-    
-    if (classInfo.validation_rules?.minimumQualification) {
-      requirements.push(`Minimum Qualification: ${classInfo.validation_rules.minimumQualification}`);
-    }
-    
-    if (classInfo.validation_rules?.allowedStates && classInfo.validation_rules.allowedStates.length > 0) {
-      requirements.push(`Eligible States: ${classInfo.validation_rules.allowedStates.join(', ')}`);
+    if (classInfo.validation_rules && typeof classInfo.validation_rules === 'object') {
+      const validationRules = classInfo.validation_rules as unknown as ValidationRules;
+      
+      if (validationRules.ageRange) {
+        requirements.push(`Age Range: ${validationRules.ageRange.min} - ${validationRules.ageRange.max} years`);
+      }
+      
+      if (validationRules.minimumQualification) {
+        requirements.push(`Minimum Qualification: ${validationRules.minimumQualification}`);
+      }
+      
+      if (validationRules.allowedStates && validationRules.allowedStates.length > 0) {
+        requirements.push(`Eligible Locations: ${validationRules.allowedStates.join(', ')}`);
+      }
     }
     
     const classDetails = `
@@ -80,15 +85,15 @@ To apply for this class, please register and submit an application through our p
     }
     
     navigator.clipboard.writeText(classInfo.template);
-    toast.success('Application template copied to clipboard');
+    toast.success('Application form copied to clipboard');
   };
 
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="text-islamic-primary">Available Classes</CardTitle>
+        <CardTitle className="text-islamic-primary">Classes to be Started</CardTitle>
         <CardDescription>
-          View available classes and their requirements
+          View details of the classes and their requirements. You can copy the Application form.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -120,19 +125,23 @@ To apply for this class, please register and submit an application through our p
                         <Info className="h-3 w-3" /> Requirements
                       </h4>
                       <ul className="text-xs space-y-1">
-                        {classInfo.validation_rules?.ageRange && (
-                          <li>
-                            Age: {classInfo.validation_rules.ageRange.min} - {classInfo.validation_rules.ageRange.max} years
-                          </li>
-                        )}
-                        {classInfo.validation_rules?.minimumQualification && (
-                          <li>Qualification: {classInfo.validation_rules.minimumQualification}</li>
-                        )}
-                        {classInfo.validation_rules?.allowedStates && classInfo.validation_rules.allowedStates.length > 0 && (
-                          <li>
-                            Eligible States: {classInfo.validation_rules.allowedStates.slice(0, 3).join(', ')}
-                            {classInfo.validation_rules.allowedStates.length > 3 && ` and ${classInfo.validation_rules.allowedStates.length - 3} more`}
-                          </li>
+                        {classInfo.validation_rules && typeof classInfo.validation_rules === 'object' && (
+                          <>
+                            {(classInfo.validation_rules as unknown as ValidationRules).ageRange && (
+                              <li>
+                                Age: {(classInfo.validation_rules as unknown as ValidationRules).ageRange.min} - {(classInfo.validation_rules as unknown as ValidationRules).ageRange.max} years
+                              </li>
+                            )}
+                            {(classInfo.validation_rules as unknown as ValidationRules).minimumQualification && (
+                              <li>Qualification: {(classInfo.validation_rules as unknown as ValidationRules).minimumQualification}</li>
+                            )}
+                            {(classInfo.validation_rules as unknown as ValidationRules).allowedStates && (classInfo.validation_rules as unknown as ValidationRules).allowedStates.length > 0 && (
+                              <li>
+                                Eligible Locations: {(classInfo.validation_rules as unknown as ValidationRules).allowedStates.slice(0, 3).join(', ')}
+                                {(classInfo.validation_rules as unknown as ValidationRules).allowedStates.length > 3 && ` and ${(classInfo.validation_rules as unknown as ValidationRules).allowedStates.length - 3} more`}
+                              </li>
+                            )}
+                          </>
                         )}
                       </ul>
                     </div>
@@ -142,7 +151,7 @@ To apply for this class, please register and submit an application through our p
                       <Info className="h-4 w-4 mr-2" /> Copy Info
                     </Button>
                     <Button variant="outline" size="sm" className="w-full" onClick={() => copyApplicationTemplate(classInfo)}>
-                      <Copy className="h-4 w-4 mr-2" /> Copy Template
+                      <Copy className="h-4 w-4 mr-2" /> Copy Form
                     </Button>
                   </CardFooter>
                 </Card>

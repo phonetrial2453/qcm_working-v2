@@ -52,8 +52,8 @@ const LoginPage: React.FC = () => {
         <Card className="border-islamic-primary/20">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold">
-              <span className="text-islamic-primary">Quran & Seerat</span>
-              <span className="text-islamic-accent"> Scribe</span>
+              <span className="text-islamic-primary">Quran Classes</span>
+              <span className="text-islamic-accent"> Application Manager</span>
             </CardTitle>
             <CardDescription>
               Login to manage applications
@@ -76,9 +76,9 @@ const LoginPage: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  <Button variant="link" className="text-xs p-0 h-auto text-islamic-primary" type="button">
-                    Forgot Password?
-                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Contact Admin to help reset your password.
+                  </p>
                 </div>
                 <Input
                   id="password"

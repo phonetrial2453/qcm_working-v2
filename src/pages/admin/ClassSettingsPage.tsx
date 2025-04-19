@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import AppLayout from '@/components/layout/AppLayout';
@@ -58,8 +57,8 @@ Batch# : Batch Number
 =====================`;
 
 const classSchema = z.object({
-  code: z.string().min(2).max(5).regex(/^[A-Z0-9]{2,5}$/, {
-    message: "Code must be 2-5 uppercase letters/numbers"
+  code: z.string().min(2).max(10).regex(/^[A-Z0-9]{2,10}$/, {
+    message: "Code must be 2-10 uppercase letters/numbers"
   }),
   name: z.string().min(2, {
     message: "Name must be at least 2 characters"
@@ -72,7 +71,7 @@ const classSchema = z.object({
       max: z.number().min(1).max(120)
     }),
     allowedStates: z.array(z.string()).min(1, {
-      message: "At least one state must be selected"
+      message: "At least one location must be selected"
     }),
     minimumQualification: z.string().optional()
   })
@@ -376,7 +375,7 @@ const ClassSettingsPage: React.FC = () => {
         </Card>
         
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-[600px] bg-background">
+          <DialogContent className="sm:max-w-[600px] bg-background max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingClass ? `Edit Class: ${editingClass.name}` : 'Add New Class'}
@@ -398,13 +397,13 @@ const ClassSettingsPage: React.FC = () => {
                         <Input 
                           {...field} 
                           placeholder="e.g., QRAN" 
-                          maxLength={5}
+                          maxLength={10}
                           disabled={!!editingClass}
                           onChange={e => field.onChange(e.target.value.toUpperCase())}
                         />
                       </FormControl>
                       <FormDescription>
-                        A unique 2-5 character code for the class (uppercase letters and numbers only)
+                        A unique 2-10 character code for the class (uppercase letters and numbers only)
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -532,27 +531,20 @@ const ClassSettingsPage: React.FC = () => {
                     name="validationRules.allowedStates"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Allowed States</FormLabel>
-                        <div className="flex flex-wrap gap-2">
-                          {['Tamil Nadu', 'Telangana', 'Andhra Pradesh', 'Karnataka', 'Kerala', 'Delhi', 'Maharashtra', 'Gujarat'].map(state => (
-                            <Button
-                              key={state}
-                              type="button"
-                              variant={field.value.includes(state) ? "default" : "outline"}
-                              onClick={() => {
-                                const updatedStates = field.value.includes(state)
-                                  ? field.value.filter(s => s !== state)
-                                  : [...field.value, state];
-                                field.onChange(updatedStates);
-                              }}
-                              className={field.value.includes(state) ? "bg-islamic-primary" : ""}
-                            >
-                              {state}
-                            </Button>
-                          ))}
-                        </div>
+                        <FormLabel>Allowed Locations</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Enter locations separated by commas (e.g., Tamil Nadu, Telangana, Andhra Pradesh)"
+                            value={field.value.join(', ')}
+                            onChange={(e) => {
+                              const locations = e.target.value.split(',').map(item => item.trim()).filter(Boolean);
+                              field.onChange(locations);
+                            }}
+                            className="min-h-[100px]"
+                          />
+                        </FormControl>
                         <FormDescription>
-                          Select states where students can apply from
+                          Enter locations where students can apply from (comma separated)
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

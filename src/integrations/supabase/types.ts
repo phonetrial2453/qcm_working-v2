@@ -9,6 +9,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value: Json
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       applications: {
         Row: {
           call_response: string | null
@@ -251,12 +275,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_users_by_ids: {
+        Args: { user_ids: string[] }
+        Returns: unknown[]
+      }
       has_role: {
         Args: {
           user_id: string
           role_name: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      search_users: {
+        Args: { search_term: string }
+        Returns: unknown[]
       }
       update_user_profile: {
         Args: { name: string; avatar_url?: string }

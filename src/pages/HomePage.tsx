@@ -1,15 +1,41 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Search, LogIn } from 'lucide-react';
+import { FileText, LogIn, UserPlus } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import PublicClassesList from '@/components/home/PublicClassesList';
 
 const HomePage: React.FC = () => {
   const { isAuthenticated } = useAuth();
+  const [signupEnabled, setSignupEnabled] = useState(true);
+
+  useEffect(() => {
+    fetchSignupSetting();
+  }, []);
+
+  const fetchSignupSetting = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'signup_enabled')
+        .single();
+
+      if (error) throw error;
+      
+      if (data) {
+        setSignupEnabled(data.value === true || data.value === 'true');
+      }
+    } catch (error) {
+      console.error('Error fetching signup setting:', error);
+      // Default to enabled if there's an error
+      setSignupEnabled(true);
+    }
+  };
 
   return (
     <AppLayout requireAuth={false}>
@@ -34,27 +60,32 @@ const HomePage: React.FC = () => {
                 </Link>
               </Button>
             ) : (
-              <Button 
-                asChild
-                size="lg" 
-                className="bg-islamic-primary hover:bg-islamic-primary/90"
-              >
-                <Link to="/login">
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Login
-                </Link>
-              </Button>
+              <>
+                <Button 
+                  asChild
+                  size="lg" 
+                  className="bg-islamic-primary hover:bg-islamic-primary/90"
+                >
+                  <Link to="/login">
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Login
+                  </Link>
+                </Button>
+                
+                {signupEnabled && (
+                  <Button 
+                    asChild
+                    size="lg" 
+                    variant="outline"
+                  >
+                    <Link to="/signup">
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Sign Up
+                    </Link>
+                  </Button>
+                )}
+              </>
             )}
-            <Button 
-              asChild
-              size="lg" 
-              variant="outline"
-            >
-              <Link to="/check-status">
-                <Search className="mr-2 h-4 w-4" />
-                Check Application Status
-              </Link>
-            </Button>
           </div>
         </div>
         
@@ -99,26 +130,6 @@ const HomePage: React.FC = () => {
         
         {/* Public Classes List Section */}
         <PublicClassesList />
-        
-        {/* CTA Section */}
-        <div className="rounded-lg bg-islamic-pattern p-8 text-center mb-12">
-          <h2 className="text-2xl font-bold text-islamic-primary mb-4">
-            Check Your Application Status
-          </h2>
-          <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-            Have you already applied? Enter your application ID to check your current status.
-          </p>
-          <Button 
-            asChild
-            size="lg" 
-            className="bg-islamic-accent text-islamic-primary hover:bg-islamic-accent/90"
-          >
-            <Link to="/check-status">
-              <FileText className="mr-2 h-4 w-4" />
-              Check Status Now
-            </Link>
-          </Button>
-        </div>
       </div>
     </AppLayout>
   );
