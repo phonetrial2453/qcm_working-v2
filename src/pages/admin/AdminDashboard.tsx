@@ -7,7 +7,7 @@ import { useApplications } from '@/contexts/ApplicationContext';
 import SignupSetting from '@/components/admin/SignupSetting';
 
 const AdminDashboard: React.FC = () => {
-  const { applications, classes, users } = useApplications();
+  const { applications = [], classes = [], users = [] } = useApplications();
 
   return (
     <AppLayout adminOnly>
@@ -30,7 +30,7 @@ const AdminDashboard: React.FC = () => {
                 <CardDescription>Number of applications received</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">{applications.length}</p>
+                <p className="text-2xl font-bold">{applications?.length || 0}</p>
               </CardContent>
             </Card>
             
@@ -40,7 +40,7 @@ const AdminDashboard: React.FC = () => {
                 <CardDescription>Number of classes configured</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">{classes.length}</p>
+                <p className="text-2xl font-bold">{classes?.length || 0}</p>
               </CardContent>
             </Card>
             
@@ -50,7 +50,7 @@ const AdminDashboard: React.FC = () => {
                 <CardDescription>Number of registered users</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">{users.length}</p>
+                <p className="text-2xl font-bold">{users?.length || 0}</p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -63,11 +63,15 @@ const AdminDashboard: React.FC = () => {
                 <CardDescription>List of recently submitted applications</CardDescription>
               </CardHeader>
               <CardContent>
-                {applications.slice(0, 5).map(app => (
-                  <div key={app.id} className="py-2 border-b last:border-b-0">
-                    {app.studentDetails?.fullName} - {app.classCode}
-                  </div>
-                ))}
+                {applications && applications.length > 0 ? (
+                  applications.slice(0, 5).map(app => (
+                    <div key={app.id} className="py-2 border-b last:border-b-0">
+                      {app.studentDetails?.fullName || 'Unknown'} - {app.classCode}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500">No applications found</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import AppLayout from '@/components/layout/AppLayout';
@@ -44,7 +43,7 @@ interface AddModeratorForm {
 }
 
 const ModeratorManagementPage: React.FC = () => {
-  const { isAdmin: currentUserIsAdmin } = useAuth();
+  const { isAdmin: userIsAdmin } = useAuth();
   const { classes } = useApplications();
   const [users, setUsers] = useState<User[]>([]);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
@@ -53,7 +52,7 @@ const ModeratorManagementPage: React.FC = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
-  const [userIsAdmin, setUserIsAdmin] = useState(false);
+  const [isUserAdmin, setIsUserAdmin] = useState(false);
   
   const { register, handleSubmit, reset, formState: { errors } } = useForm<AddModeratorForm>();
 
@@ -64,7 +63,6 @@ const ModeratorManagementPage: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch users
       const { data: usersData, error: usersError } = await supabase.rpc('search_users', {
         search_term: '',
       });
@@ -72,7 +70,6 @@ const ModeratorManagementPage: React.FC = () => {
       if (usersError) throw usersError;
       setUsers(usersData as User[]);
       
-      // Fetch user roles
       const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')
         .select('*');
@@ -80,7 +77,6 @@ const ModeratorManagementPage: React.FC = () => {
       if (rolesError) throw rolesError;
       setUserRoles(rolesData as UserRole[]);
       
-      // Fetch moderator classes
       const { data: classesData, error: classesError } = await supabase
         .from('moderator_classes')
         .select('*');
@@ -96,7 +92,6 @@ const ModeratorManagementPage: React.FC = () => {
 
   const onAddModerator = async (data: AddModeratorForm) => {
     try {
-      // Create user
       const { data: userData, error: signupError } = await supabase.auth.admin.createUser({
         email: data.email,
         password: data.password,
@@ -106,7 +101,6 @@ const ModeratorManagementPage: React.FC = () => {
       
       if (signupError) throw signupError;
       
-      // Add role
       const role = data.isAdmin ? 'admin' : 'moderator';
       const { error: roleError } = await supabase
         .from('user_roles')
@@ -125,26 +119,21 @@ const ModeratorManagementPage: React.FC = () => {
 
   const onEditUser = async (userId: string) => {
     try {
-      // Update user role
-      if (userIsAdmin) {
-        // Check if user already has admin role
+      if (isUserAdmin) {
         const existingAdminRole = userRoles.find(ur => ur.user_id === userId && ur.role === 'admin');
         
         if (!existingAdminRole) {
-          // Add admin role
           await supabase
             .from('user_roles')
             .insert({ user_id: userId, role: 'admin' });
         }
       } else {
-        // Remove admin role if exists
         await supabase
           .from('user_roles')
           .delete()
           .eq('user_id', userId)
           .eq('role', 'admin');
           
-        // Ensure user has moderator role
         const existingModeratorRole = userRoles.find(ur => ur.user_id === userId && ur.role === 'moderator');
         
         if (!existingModeratorRole) {
@@ -154,14 +143,11 @@ const ModeratorManagementPage: React.FC = () => {
         }
       }
       
-      // Update moderator classes
-      // First, remove all existing class assignments
       await supabase
         .from('moderator_classes')
         .delete()
         .eq('user_id', userId);
       
-      // Then add new class assignments
       if (selectedClasses.length > 0) {
         const classInserts = selectedClasses.map(classCode => ({
           user_id: userId,
@@ -183,9 +169,8 @@ const ModeratorManagementPage: React.FC = () => {
 
   const handleEditClick = (user: User) => {
     setEditingUser(user);
-    // Set initial values
     const isUserAdmin = userRoles.some(ur => ur.user_id === user.id && ur.role === 'admin');
-    setUserIsAdmin(isUserAdmin);
+    setIsUserAdmin(isUserAdmin);
     
     const userClasses = moderatorClasses
       .filter(mc => mc.user_id === user.id)
@@ -311,8 +296,8 @@ const ModeratorManagementPage: React.FC = () => {
                     <div className="flex items-center mb-2">
                       <Checkbox 
                         id="isAdmin" 
-                        checked={userIsAdmin}
-                        onCheckedChange={(checked) => setUserIsAdmin(checked as boolean)}
+                        checked={isUserAdmin}
+                        onCheckedChange={(checked) => setIsUserAdmin(checked as boolean)}
                       />
                       <Label htmlFor="isAdmin" className="ml-2">Admin Access</Label>
                     </div>
@@ -328,13 +313,13 @@ const ModeratorManagementPage: React.FC = () => {
                             id={`class-${cls.code}`}
                             checked={selectedClasses.includes(cls.code)}
                             onCheckedChange={() => toggleClassSelection(cls.code)}
-                            disabled={userIsAdmin} // Admins have access to all classes
+                            disabled={isUserAdmin}
                           />
                           <Label htmlFor={`class-${cls.code}`} className="ml-2">{cls.name}</Label>
                         </div>
                       ))}
                     </div>
-                    {userIsAdmin && (
+                    {isUserAdmin && (
                       <p className="text-xs text-gray-500 mt-2">Admins automatically have access to all classes.</p>
                     )}
                   </div>
