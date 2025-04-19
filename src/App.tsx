@@ -7,8 +7,6 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ApplicationProvider } from "./contexts/ApplicationContext";
 import { QuranProvider } from "./contexts/QuranContext";
 import SignupPage from "./pages/SignupPage";
-
-// Pages
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/auth/LoginPage";
 import Dashboard from "./pages/Dashboard";
@@ -23,6 +21,7 @@ import ClassSettingsPage from "./pages/admin/ClassSettingsPage";
 import ReportsPage from "./pages/admin/ReportsPage";
 import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
+import ApplicationPage from './pages/ApplicationPage';
 
 const queryClient = new QueryClient();
 
@@ -43,18 +42,17 @@ const App = () => (
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/check-status" element={<StatusCheckPage />} />
                 
-                {/* Application Routes */}
                 <Route path="/applications" element={<ApplicationsListPage />} />
                 <Route path="/applications/new" element={<NewApplicationPage />} />
                 <Route path="/applications/:id" element={<ApplicationDetailPage />} />
                 
-                {/* Admin Routes */}
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/moderators" element={<ModeratorManagementPage />} />
                 <Route path="/admin/classes" element={<ClassSettingsPage />} />
                 <Route path="/admin/reports" element={<ReportsPage />} />
                 
-                {/* 404 Route */}
+                <Route path="/application" element={<ApplicationPage />} />
+                
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
