@@ -1,368 +1,309 @@
-
-import { ClassRecord, ValidationRules, StudentApplication } from '@/types/supabase-types';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Class, ClassRecord, Application, StudentApplication } from '@/types/supabase-types';
+import { useAuth } from './AuthContext';
 import { Json } from '@/integrations/supabase/types';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/sonner';
-
-// Using the StudentApplication interface as the base for our Application type
-interface Application extends StudentApplication {
-  id: string;
-  createdAt: string;
-}
-
-interface Class {
-  id: string;
-  name: string;
-  code: string;
-  description: string;
-  createdAt: string;
-  validationRules: ValidationRules | null;
-  template?: string | null;
-}
-
-interface User {
-  id: string;
-  email: string;
-  created_at: string;
-  raw_user_meta_data?: {
-    name?: string;
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
-
+// Type definition for the context
 interface ApplicationContextType {
-  classes: Class[];
   applications: Application[];
-  users: User[];
-  fetchClasses: () => Promise<void>;
-  refreshClasses: () => Promise<void>;
+  classes: Class[];
   loading: boolean;
   error: string | null;
-  getApplication: (id: string) => Application | undefined;
-  updateApplication: (id: string, data: Partial<Application>) => Promise<void>;
-  addApplication: (application: Omit<Application, 'id' | 'createdAt'>) => Promise<string>;
-  validateApplication: (application: Partial<Application>) => { valid: boolean; errors: string[] };
+  fetchApplications: () => Promise<void>;
+  refreshClasses: () => Promise<void>;
+  createApplication: (applicationData: StudentApplication) => Promise<string | null>;
+  updateApplication: (applicationId: string, applicationData: StudentApplication) => Promise<string | null>;
+  deleteApplication: (applicationId: string) => Promise<void>;
+  formatApplicationForDisplay: (app: Application) => any;
 }
 
+// Create the context
 const ApplicationContext = createContext<ApplicationContextType | undefined>(undefined);
 
-export const ApplicationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [classes, setClasses] = useState<Class[]>([]);
+// Provider component
+export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [applications, setApplications] = useState<Application[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, user } = useAuth();
 
+  // Convert JSON type to expected validation rules type
+  const transformValidationRules = (rules: Json) => {
+    const typedRules = rules as {
+      ageRange?: { min?: number; max?: number };
+      allowedStates?: string[];
+      minimumQualification?: string;
+    };
+    return typedRules;
+  };
+
+  // Function to fetch classes
   const fetchClasses = async () => {
-    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('classes')
         .select('*');
 
       if (error) {
-        throw new Error(`Failed to fetch classes: ${error.message}`);
+        throw error;
       }
 
       if (data) {
-        const classList = data.map(item => ({
-          id: item.id,
-          name: item.name,
-          code: item.code,
-          description: item.description || '',
-          createdAt: item.created_at,
-          validationRules: item.validation_rules as ValidationRules | null,
-          template: item.template || null,
+        // Transform the data to match the Class type
+        const transformedClasses = data.map(cls => ({
+          ...cls,
+          id: cls.id,
+          code: cls.code,
+          name: cls.name,
+          description: cls.description || '',
+          validationRules: transformValidationRules(cls.validation_rules),
+          template: cls.template as string || '',
+          created_at: cls.created_at,
+          updated_at: cls.updated_at
         }));
-        setClasses(classList);
+        setClasses(transformedClasses);
       }
-    } catch (err: any) {
-      setError(err.message);
-      toast.error(err.message);
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching classes:', err);
+      setError('Failed to fetch classes');
     }
   };
 
+  // Function to fetch applications
   const fetchApplications = async () => {
+    if (!isAuthenticated) {
+      setApplications([]);
+      return;
+    }
+
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('applications')
         .select('*');
 
       if (error) {
-        throw new Error(`Failed to fetch applications: ${error.message}`);
+        throw error;
       }
 
-      // Transform the raw data into our Application interface format
       if (data) {
-        const formattedApplications: Application[] = data.map(app => {
-          // Ensure we have proper objects for nested data
-          const studentDetails = typeof app.student_details === 'object' && app.student_details !== null
-            ? app.student_details
-            : { fullName: 'Unknown', mobile: 'Unknown' };
-            
-          const otherDetails = typeof app.other_details === 'object' && app.other_details !== null
-            ? app.other_details
-            : { email: '' };
-            
-          const hometownDetails = typeof app.hometown_details === 'object' && app.hometown_details !== null
-            ? app.hometown_details
-            : {};
-            
-          const currentResidence = typeof app.current_residence === 'object' && app.current_residence !== null
-            ? app.current_residence
-            : {};
-            
-          const referredBy = typeof app.referred_by === 'object' && app.referred_by !== null
-            ? app.referred_by
-            : {};
-            
+        // Transform to match Application type
+        const transformedApplications = data.map(app => {
+          // Safely handle JSON fields
+          const studentDetails = app.student_details as { [key: string]: any };
+          const otherDetails = app.other_details as { [key: string]: any };
+          const hometownDetails = app.hometown_details as { [key: string]: any };
+          const currentResidence = app.current_residence as { [key: string]: any };
+          const referredBy = app.referred_by as { [key: string]: any };
+
           return {
             id: app.id,
             classCode: app.class_code,
             status: app.status,
             createdAt: app.created_at,
+            updatedAt: app.updated_at,
             studentDetails: {
-              fullName: studentDetails.fullName || 'Unknown',
-              mobile: studentDetails.mobile || 'Unknown',
+              fullName: studentDetails?.fullName || '',
+              mobile: studentDetails?.mobile || '',
+              whatsapp: studentDetails?.whatsapp || '',
               ...studentDetails
             },
             otherDetails: {
-              email: otherDetails.email || '',
+              email: otherDetails?.email || '',
+              age: otherDetails?.age,
+              qualification: otherDetails?.qualification,
+              profession: otherDetails?.profession,
               ...otherDetails
             },
-            hometownDetails,
-            currentResidence,
-            referredBy,
-            remarks: app.remarks || '',
+            hometownDetails: {
+              area: hometownDetails?.area,
+              city: hometownDetails?.city,
+              district: hometownDetails?.district,
+              state: hometownDetails?.state,
+              ...hometownDetails
+            },
+            currentResidence: {
+              area: currentResidence?.area,
+              mandal: currentResidence?.mandal,
+              city: currentResidence?.city,
+              state: currentResidence?.state,
+              ...currentResidence
+            },
+            referredBy: {
+              fullName: referredBy?.fullName || '',
+              mobile: referredBy?.mobile || '',
+              studentId: referredBy?.studentId,
+              batch: referredBy?.batch,
+              ...referredBy
+            },
+            remarks: app.remarks
           };
         });
 
-        setApplications(formattedApplications);
-      } else {
-        setApplications([]);
+        setApplications(transformedApplications);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching applications:', err);
-      toast.error(`Error fetching applications: ${err.message}`);
+      setError('Failed to fetch applications');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchUsers = async () => {
+  // Function to create a new application
+  const createApplication = async (applicationData: StudentApplication): Promise<string | null> => {
     try {
-      const { data, error } = await supabase.rpc('search_users', {
-        search_term: '',
-      });
-      
-      if (error) {
-        throw new Error(`Failed to fetch users: ${error.message}`);
-      }
-      
-      // Ensure data is properly formatted as User[]
-      const formattedUsers: User[] = data ? data.map((user: any) => ({
-        id: user.id,
-        email: user.email || '',
-        created_at: user.created_at || new Date().toISOString(),
-        raw_user_meta_data: user.raw_user_meta_data || {},
-      })) : [];
-      
-      setUsers(formattedUsers);
-    } catch (err: any) {
-      console.error('Error fetching users:', err);
-    }
-  };
-
-  // Get a single application by ID
-  const getApplication = (id: string): Application | undefined => {
-    return applications.find(app => app.id === id);
-  };
-
-  // Update an application
-  const updateApplication = async (id: string, data: Partial<Application>): Promise<void> => {
-    try {
-      // Transform the data back to database format
-      const dbData: any = {};
-      
-      if (data.studentDetails) dbData.student_details = data.studentDetails;
-      if (data.otherDetails) dbData.other_details = data.otherDetails;
-      if (data.hometownDetails) dbData.hometown_details = data.hometownDetails;
-      if (data.currentResidence) dbData.current_residence = data.currentResidence;
-      if (data.referredBy) dbData.referred_by = data.referredBy;
-      if (data.status) dbData.status = data.status;
-      if (data.remarks !== undefined) dbData.remarks = data.remarks;
-      
-      const { error } = await supabase
-        .from('applications')
-        .update(dbData)
-        .eq('id', id);
-        
-      if (error) throw new Error(error.message);
-      
-      // Update local state
-      setApplications(prev => 
-        prev.map(app => app.id === id ? { ...app, ...data } : app)
-      );
-      
-      toast.success('Application updated successfully');
-    } catch (err: any) {
-      toast.error('Failed to update application: ' + err.message);
-      throw err;
-    }
-  };
-
-  // Add a new application
-  const addApplication = async (application: Omit<Application, 'id' | 'createdAt'>): Promise<string> => {
-    try {
-      // Generate a unique ID for the application
-      const uuid = crypto.randomUUID();
-
-      // Transform the data to database format
-      const dbData = {
-        id: uuid,
-        class_code: application.classCode,
-        student_details: application.studentDetails,
-        other_details: application.otherDetails,
-        hometown_details: application.hometownDetails,
-        current_residence: application.currentResidence,
-        referred_by: application.referredBy,
-        status: application.status || 'pending',
-        remarks: application.remarks,
-        user_id: '00000000-0000-0000-0000-000000000000' // Placeholder for anonymous submissions
-      };
-      
       const { data, error } = await supabase
         .from('applications')
-        .insert(dbData)
-        .select();
-        
-      if (error) throw new Error(error.message);
-      if (!data || data.length === 0) throw new Error('No data returned after insert');
-      
-      const newApp = data[0];
-      
-      // Format the returned data and add to state
-      const formattedApp: Application = {
-        id: newApp.id,
-        classCode: newApp.class_code,
-        status: newApp.status,
-        createdAt: newApp.created_at,
-        studentDetails: typeof newApp.student_details === 'object' && newApp.student_details !== null
-          ? { fullName: newApp.student_details.fullName || 'Unknown', mobile: newApp.student_details.mobile || 'Unknown', ...newApp.student_details }
-          : { fullName: 'Unknown', mobile: 'Unknown' },
-        otherDetails: typeof newApp.other_details === 'object' && newApp.other_details !== null
-          ? { email: newApp.other_details.email || '', ...newApp.other_details }
-          : { email: '' },
-        hometownDetails: typeof newApp.hometown_details === 'object' && newApp.hometown_details !== null 
-          ? newApp.hometown_details 
-          : {},
-        currentResidence: typeof newApp.current_residence === 'object' && newApp.current_residence !== null 
-          ? newApp.current_residence 
-          : {},
-        referredBy: typeof newApp.referred_by === 'object' && newApp.referred_by !== null 
-          ? newApp.referred_by 
-          : {},
-        remarks: newApp.remarks,
-      };
-      
-      setApplications(prev => [...prev, formattedApp]);
-      
-      toast.success('Application submitted successfully');
-      return newApp.id;
-    } catch (err: any) {
-      toast.error('Failed to submit application: ' + err.message);
-      throw err;
+        .insert([
+          {
+            class_code: applicationData.classCode,
+            status: applicationData.status,
+            student_details: applicationData.studentDetails,
+            other_details: applicationData.otherDetails,
+            hometown_details: applicationData.hometownDetails,
+            current_residence: applicationData.currentResidence,
+            referred_by: applicationData.referredBy,
+            remarks: applicationData.remarks,
+          },
+        ])
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Error creating application:', error);
+        setError('Failed to create application');
+        return null;
+      }
+
+      return data.id;
+    } catch (err) {
+      console.error('Error creating application:', err);
+      setError('Failed to create application');
+      return null;
     }
   };
 
-  // Validate an application against class rules
-  const validateApplication = (application: Partial<Application>): { valid: boolean; errors: string[] } => {
-    const errors: string[] = [];
-    
-    // Find class validation rules
-    const classDetails = classes.find(c => c.code === application.classCode);
-    if (!classDetails) {
-      errors.push('Invalid class code');
-      return { valid: false, errors };
-    }
-    
-    const rules = classDetails.validationRules;
-    if (!rules) {
-      // No validation rules, consider valid
-      return { valid: true, errors: [] };
-    }
-    
-    // Check age if provided
-    if (rules.ageRange && application.otherDetails?.age) {
-      const age = parseInt(application.otherDetails.age.toString());
-      if (age < rules.ageRange.min || age > rules.ageRange.max) {
-        errors.push(`Age must be between ${rules.ageRange.min} and ${rules.ageRange.max}`);
+  // Function to update an existing application
+  const updateApplication = async (applicationId: string, applicationData: StudentApplication): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('applications')
+        .update({
+          class_code: applicationData.classCode,
+          status: applicationData.status,
+          student_details: applicationData.studentDetails,
+          other_details: applicationData.otherDetails,
+          hometown_details: applicationData.hometownDetails,
+          current_residence: applicationData.currentResidence,
+          referred_by: applicationData.referredBy,
+          remarks: applicationData.remarks,
+        })
+        .eq('id', applicationId)
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Error updating application:', error);
+        setError('Failed to update application');
+        return null;
       }
+
+      return data.id;
+    } catch (err) {
+      console.error('Error updating application:', err);
+      setError('Failed to update application');
+      return null;
     }
-    
-    // Check state/province if provided
-    if (rules.allowedStates && rules.allowedStates.length > 0 && 
-        application.currentResidence?.state) {
-      const state = application.currentResidence.state.toString();
-      if (!rules.allowedStates.includes(state)) {
-        errors.push(`State/Province ${state} is not eligible for this class`);
+  };
+
+  // Function to delete an application
+  const deleteApplication = async (applicationId: string): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .delete()
+        .eq('id', applicationId);
+
+      if (error) {
+        console.error('Error deleting application:', error);
+        setError('Failed to delete application');
       }
+    } catch (err) {
+      console.error('Error deleting application:', err);
+      setError('Failed to delete application');
     }
-    
-    // Check qualification if provided
-    if (rules.minimumQualification && application.otherDetails?.qualification) {
-      const qualifications = ['none', 'primary', 'secondary', 'diploma', 'bachelors', 'masters', 'doctorate'];
-      const reqIndex = qualifications.indexOf(rules.minimumQualification);
-      const userIndex = qualifications.indexOf(application.otherDetails.qualification.toString().toLowerCase());
-      
-      if (userIndex < reqIndex) {
-        errors.push(`Minimum qualification required is ${rules.minimumQualification}`);
-      }
+  };
+
+  // Function to refresh classes
+  const refreshClasses = async () => {
+    await fetchClasses();
+  };
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchClasses();
+    if (isAuthenticated) {
+      fetchApplications();
     }
-    
-    return { 
-      valid: errors.length === 0,
-      errors 
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (error) {
+      console.error('Application Context Error:', error);
+      // Implement your error handling logic here, e.g., display a toast notification
+    }
+  }, [error]);
+
+  // Format application for display
+  const formatApplicationForDisplay = (app: Application) => {
+    // Safe access to properties
+    const studentDetails = app.studentDetails || {};
+    const otherDetails = app.otherDetails || {};
+    const hometownDetails = app.hometownDetails || {};
+    const currentResidence = app.currentResidence || {};
+    const referredBy = app.referredBy || {};
+
+    return {
+      id: app.id,
+      name: studentDetails.fullName || 'N/A',
+      phone: studentDetails.mobile || 'N/A',
+      email: otherDetails.email || 'N/A',
+      class: app.classCode,
+      status: app.status,
+      createdAt: app.createdAt,
+      address: `${currentResidence.area || ''}, ${currentResidence.city || ''}, ${currentResidence.state || ''}`.trim(),
     };
   };
 
-  // Alias for fetchClasses for consistency
-  const refreshClasses = fetchClasses;
-
-  useEffect(() => {
-    fetchClasses();
-    fetchApplications();
-    fetchUsers();
-  }, []);
-
+  // Provide the context
   return (
-    <ApplicationContext.Provider value={{ 
-      classes, 
-      applications, 
-      users,
-      fetchClasses, 
-      refreshClasses,
-      loading, 
-      error,
-      getApplication,
-      updateApplication,
-      addApplication,
-      validateApplication
-    }}>
+    <ApplicationContext.Provider
+      value={{
+        applications,
+        classes,
+        loading,
+        error,
+        fetchApplications,
+        refreshClasses,
+        createApplication,
+        updateApplication,
+        deleteApplication,
+        formatApplicationForDisplay
+      }}
+    >
       {children}
     </ApplicationContext.Provider>
   );
 };
 
+// Hook to use the context
 export const useApplications = () => {
   const context = useContext(ApplicationContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useApplications must be used within an ApplicationProvider');
   }
   return context;
 };
-
-export type { Class, User, Application };

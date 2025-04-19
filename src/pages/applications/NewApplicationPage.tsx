@@ -1,415 +1,293 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useApplications } from '@/contexts/ApplicationContext';
 import { useAuth } from '@/contexts/AuthContext';
-import AppLayout from '@/components/layout/AppLayout';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { toast } from '@/components/ui/sonner';
-import { AlertCircle, Check, X } from 'lucide-react';
-import { StudentApplication } from '@/types/supabase-types';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/use-toast";
 
-// Define a type for ParsedApplication
-interface ParsedApplication {
-  valid: boolean;
-  errors: string[];
-  warnings: string[];
-  studentDetails: {
-    fullName: string;
-    mobile: string;
-    whatsapp?: string;
-  };
-  hometownDetails: {
-    area?: string;
-    city: string;
-    district: string;
-    state: string;
-  };
-  currentResidence: {
-    area: string;
-    mandal: string;
-    city: string;
-    state: string;
-  };
-  otherDetails: {
-    age: number;
-    qualification: string;
-    profession: string;
-    email: string;
-  };
-  referredBy: {
-    fullName: string;
-    mobile: string;
-    studentId: string;
-    batch: string;
-  };
-}
+// Define the schema for form validation
+const formSchema = z.object({
+  fullName: z.string().min(2, { message: "Full Name must be at least 2 characters." }),
+  mobile: z.string().regex(/^(\+?\d{1,4}[-.\s]?)?(\(?\d{1,}\)?[-.\s]?)?(\d{1,}[-.\s]?)?[\d\s]+$/, { message: "Invalid Mobile Number" }),
+  whatsapp: z.string().regex(/^(\+?\d{1,4}[-.\s]?)?(\(?\d{1,}\)?[-.\s]?)?(\d{1,}[-.\s]?)?[\d\s]+$/, { message: "Invalid WhatsApp Number" }).optional(),
+  email: z.string().email({ message: "Invalid Email Address" }),
+  age: z.number().min(18, { message: "Age must be at least 18" }).optional(),
+  qualification: z.string().optional(),
+  profession: z.string().optional(),
+  area: z.string().optional(),
+  city: z.string().optional(),
+  district: z.string().optional(),
+  state: z.string().optional(),
+  currentArea: z.string().optional(),
+  currentMandal: z.string().optional(),
+  currentCity: z.string().optional(),
+  currentState: z.string().optional(),
+  referredByFullName: z.string().optional(),
+  referredByMobile: z.string().regex(/^(\+?\d{1,4}[-.\s]?)?(\(?\d{1,}\)?[-.\s]?)?(\d{1,}[-.\s]?)?[\d\s]+$/, { message: "Invalid Mobile Number" }).optional(),
+  referredByStudentId: z.string().optional(),
+  referredByBatch: z.string().optional(),
+  remarks: z.string().optional(),
+  classCode: z.string().min(1, { message: "Please select a class." }),
+});
 
 const NewApplicationPage: React.FC = () => {
-  const [rawText, setRawText] = useState('');
-  const [parsedApplication, setParsedApplication] = useState<Partial<StudentApplication> | null>(null);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [selectedClass, setSelectedClass] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const { user } = useAuth();
-  const { validateApplication, addApplication, classes } = useApplications();
   const navigate = useNavigate();
+  const { classes, error, loading } = useApplications();
+  const { user } = useAuth();
+  const [submitLoading, setSubmitLoading] = useState(false);
 
-  const accessibleClasses = user?.role === 'admin' 
-    ? classes 
-    : classes.filter(cls => user?.classes?.includes(cls.code));
+  // Initialize react-hook-form
+  const { register, handleSubmit, formState: { errors }, control, setValue } = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      fullName: '',
+      mobile: '',
+      whatsapp: '',
+      email: '',
+      age: undefined,
+      qualification: '',
+      profession: '',
+      area: '',
+      city: '',
+      district: '',
+      state: '',
+      currentArea: '',
+      currentMandal: '',
+      currentCity: '',
+      currentState: '',
+      referredByFullName: '',
+      referredByMobile: '',
+      referredByStudentId: '',
+      referredByBatch: '',
+      remarks: '',
+      classCode: '',
+    },
+  });
 
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-    return emailRegex.test(email);
-  };
-
-  const parseApplicationText = (text: string, classCode: string): Partial<StudentApplication> => {
-    const result: Partial<StudentApplication> = {
-      classCode,
-      status: 'pending',
-      studentDetails: {
-        fullName: '',
-        mobile: '',
-        whatsapp: '',
-      },
-      hometownDetails: {
-        area: '',
-        city: '',
-        district: '',
-        state: '',
-      },
-      currentResidence: {
-        area: '',
-        mandal: '',
-        city: '',
-        state: '',
-      },
-      otherDetails: {
-        age: 0,
-        qualification: '',
-        profession: '',
-        email: '',
-      },
-      referredBy: {
-        fullName: '',
-        mobile: '',
-        studentId: '',
-        batch: '',
-      },
-    };
-
-    const errors: string[] = [];
-    
-    // Verify class code in the first line
-    const firstLine = text.split('\n')[0].trim();
-    if (firstLine !== classCode) {
-      errors.push(`Class code in application (${firstLine}) does not match selected class (${classCode})`);
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error!",
+        description: error,
+        variant: "destructive",
+      });
     }
+  }, [error]);
 
-    // Continue with parsing the sections and fields
-    const sections = [
-      'STUDENT DETAILS',
-      'HOMETOWN DETAILS',
-      'CURRENT RESIDENCE',
-      'OTHER DETAILS',
-      'REFERRED By'
-    ];
-
-    const extractField = (line: string): [string, string] => {
-      const colonIndex = line.indexOf(':');
-      if (colonIndex === -1) {
-        throw new Error(`Invalid line format: ${line}`);
-      }
-      const fieldName = line.substring(0, colonIndex).trim();
-      const fieldValue = line.substring(colonIndex + 1).trim();
-      return [fieldName, fieldValue];
-    };
-
-    const lines = text.split('\n');
-    let currentSection = '';
-
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-      
-      if (!trimmedLine) continue;
-      
-      if (sections.some(section => trimmedLine.includes(section))) {
-        for (const section of sections) {
-          if (trimmedLine.includes(section)) {
-            currentSection = section;
-            break;
-          }
-        }
-        continue;
-      }
-      
-      if (/^={3,}$|^-{3,}$/.test(trimmedLine)) continue;
-      
-      if (currentSection && trimmedLine.includes(':')) {
-        const [fieldName, fieldValue] = extractField(trimmedLine);
-        
-        switch (currentSection) {
-          case 'STUDENT DETAILS':
-            if (fieldName.includes('Full Name')) {
-              result.studentDetails!.fullName = fieldValue;
-              if (!fieldValue) {
-                errors.push('Full Name is required');
-              }
-            } else if (fieldName.includes('Mobile')) {
-              result.studentDetails!.mobile = fieldValue;
-              if (!fieldValue) {
-                errors.push('Mobile Number is required');
-              }
-            } else if (fieldName.includes('WhatsApp')) {
-              result.studentDetails!.whatsapp = fieldValue;
-            }
-            break;
-            
-          case 'HOMETOWN DETAILS':
-            if (fieldName.includes('Area/Locality')) {
-              result.hometownDetails!.area = fieldValue;
-            } else if (fieldName.includes('City')) {
-              result.hometownDetails!.city = fieldValue;
-            } else if (fieldName.includes('District')) {
-              result.hometownDetails!.district = fieldValue;
-            } else if (fieldName.includes('State')) {
-              result.hometownDetails!.state = fieldValue;
-            }
-            break;
-            
-          case 'CURRENT RESIDENCE':
-            if (fieldName.includes('Area/Locality')) {
-              result.currentResidence!.area = fieldValue;
-            } else if (fieldName.includes('Mandal')) {
-              result.currentResidence!.mandal = fieldValue;
-            } else if (fieldName.includes('City')) {
-              result.currentResidence!.city = fieldValue;
-            } else if (fieldName.includes('State')) {
-              result.currentResidence!.state = fieldValue;
-            }
-            break;
-            
-          case 'OTHER DETAILS':
-            if (fieldName.includes('Age')) {
-              result.otherDetails!.age = parseInt(fieldValue, 10) || 0;
-              if (!fieldValue || isNaN(parseInt(fieldValue, 10))) {
-                errors.push('Age is required and must be a number');
-              }
-            } else if (fieldName.includes('Qualification')) {
-              result.otherDetails!.qualification = fieldValue;
-              if (!fieldValue) {
-                errors.push('Qualification is required');
-              }
-            } else if (fieldName.includes('Profession')) {
-              result.otherDetails!.profession = fieldValue;
-            } else if (fieldName.includes('Email')) {
-              result.otherDetails!.email = fieldValue;
-              if (!fieldValue) {
-                errors.push('Email Address is required');
-              } else if (!validateEmail(fieldValue)) {
-                errors.push('Invalid email format');
-              }
-            }
-            break;
-            
-          case 'REFERRED By':
-            if (fieldName.includes('Full Name')) {
-              result.referredBy!.fullName = fieldValue;
-            } else if (fieldName.includes('Mobile')) {
-              result.referredBy!.mobile = fieldValue;
-            } else if (fieldName.includes('Student ID')) {
-              result.referredBy!.studentId = fieldValue;
-            } else if (fieldName.includes('Batch')) {
-              result.referredBy!.batch = fieldValue;
-            }
-            break;
-        }
-      }
-    }
-
-    // Validate that all required sections are present
-    for (const section of sections) {
-      if (!text.includes(section)) {
-        errors.push(`Missing section: ${section}`);
-      }
-    }
-
-    setValidationErrors(errors);
-    return result;
-  };
-
-  const parseApplication = () => {
-    if (!selectedClass) {
-      toast.error('Please select a class before parsing the application');
-      return;
-    }
-
-    if (!rawText.trim()) {
-      toast.error('Please enter application text');
-      return;
-    }
-    
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    setSubmitLoading(true);
     try {
-      const parsedApp = parseApplicationText(rawText, selectedClass);
-      setParsedApplication(parsedApp);
-      
-      if (validationErrors.length === 0) {
-        toast.success('Application parsed successfully');
+      // Prepare the application data
+      const applicationData = {
+        studentDetails: {
+          fullName: data.fullName,
+          mobile: data.mobile,
+          whatsapp: data.whatsapp,
+        },
+        otherDetails: {
+          email: data.email,
+          age: data.age,
+          qualification: data.qualification,
+          profession: data.profession,
+        },
+        hometownDetails: {
+          area: data.area,
+          city: data.city,
+          district: data.district,
+          state: data.state,
+        },
+        currentResidence: {
+          area: data.currentArea,
+          mandal: data.currentMandal,
+          city: data.currentCity,
+          state: data.currentState,
+        },
+        referredBy: {
+          fullName: data.referredByFullName,
+          mobile: data.referredByMobile,
+          studentId: data.referredByStudentId,
+          batch: data.referredByBatch,
+        },
+        remarks: data.remarks,
+        classCode: data.classCode,
+        status: 'pending', // Set initial status
+      };
+
+      // Submit the application using Supabase client
+      const response = await fetch('/api/applications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(applicationData),
+      });
+
+      if (response.ok) {
+        // Handle successful submission
+        toast({
+          title: "Application submitted successfully!",
+          description: "Your application has been submitted successfully.",
+          variant: "default", // Change from "success" to "default"
+        });
+        navigate('/applications');
       } else {
-        toast.error('Application has validation errors');
+        // Handle submission error
+        const errorData = await response.json();
+        toast({
+          title: "Error submitting application!",
+          description: errorData.message || 'An error occurred while submitting the application.',
+          variant: "destructive",
+        });
       }
-    } catch (error) {
-      console.error('Parsing error:', error);
-      toast.error('Failed to parse application. Please check the format.');
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!parsedApplication) {
-      toast.error('Please parse the application before submitting');
-      return;
-    }
-
-    if (validationErrors.length > 0) {
-      toast.error('Cannot submit application with validation errors');
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      await addApplication(parsedApplication as Omit<StudentApplication, 'id' | 'createdAt' | 'updatedAt'>);
-      toast.success('Application submitted successfully');
-      navigate('/applications');
-    } catch (error) {
-      console.error('Submission error:', error);
-      toast.error('An error occurred while submitting the application');
+    } catch (err: any) {
+      // Handle unexpected errors
+      toast({
+        title: "Unexpected error!",
+        description: err.message || 'An unexpected error occurred.',
+        variant: "destructive",
+      });
     } finally {
-      setIsSubmitting(false);
+      setSubmitLoading(false);
     }
   };
 
-  // Function to handle input changes
-  const handleInputChange = (field: string, value: string | number) => {
-    setParsedApplication(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <AppLayout>
-      <div className="container mx-auto max-w-4xl">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-islamic-primary">New Application</h1>
-          <p className="text-muted-foreground">Submit application for Quran Classes</p>
+    <div className="container mx-auto py-8">
+      <h1 className="text-2xl font-bold mb-4">New Application</h1>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div>
+          <Label htmlFor="fullName">Full Name</Label>
+          <Input id="fullName" type="text" {...register("fullName")} />
+          {errors.fullName && <p className="text-red-500 text-sm">{errors.fullName.message}</p>}
         </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Application Form</CardTitle>
-            <CardDescription>
-              Paste the application text below. The system will parse and validate the information.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="class">Select Class</Label>
-              <Select
-                value={selectedClass}
-                onValueChange={setSelectedClass}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accessibleClasses.map(cls => (
-                    <SelectItem key={cls.code} value={cls.code}>
-                      {cls.name} ({cls.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <div>
+          <Label htmlFor="mobile">Mobile Number</Label>
+          <Input id="mobile" type="text" {...register("mobile")} />
+          {errors.mobile && <p className="text-red-500 text-sm">{errors.mobile.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="whatsapp">WhatsApp Number (Optional)</Label>
+          <Input id="whatsapp" type="text" {...register("whatsapp")} />
+          {errors.whatsapp && <p className="text-red-500 text-sm">{errors.whatsapp.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="email">Email Address</Label>
+          <Input id="email" type="email" {...register("email")} />
+          {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="age">Age (Optional)</Label>
+          <Input id="age" type="number" {...register("age", { valueAsNumber: true })} />
+          {errors.age && <p className="text-red-500 text-sm">{errors.age.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="qualification">Qualification (Optional)</Label>
+          <Input id="qualification" type="text" {...register("qualification")} />
+        </div>
+        <div>
+          <Label htmlFor="profession">Profession (Optional)</Label>
+          <Input id="profession" type="text" {...register("profession")} />
+        </div>
+        <div>
+          <Label>Hometown Details</Label>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="area">Area (Optional)</Label>
+              <Input id="area" type="text" {...register("area")} />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="application-text">Application Text</Label>
-              <Textarea
-                id="application-text"
-                placeholder="Paste the full application text here..."
-                rows={15}
-                value={rawText}
-                onChange={(e) => setRawText(e.target.value)}
-                className="font-mono"
-              />
-              <p className="text-xs text-muted-foreground">
-                Make sure the text follows the required format with sections properly labeled.
-              </p>
+            <div>
+              <Label htmlFor="city">City (Optional)</Label>
+              <Input id="city" type="text" {...register("city")} />
             </div>
-
-            <Button 
-              type="button" 
-              onClick={parseApplication}
-              className="bg-islamic-primary hover:bg-islamic-primary/90"
-            >
-              Parse Application
-            </Button>
-
-            {parsedApplication && (
-              <>
-                {validationErrors.length > 0 && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Validation Errors</AlertTitle>
-                    <AlertDescription>
-                      <ul className="list-disc pl-5 mt-2">
-                        {validationErrors.map((error, i) => (
-                          <li key={i}>{error}</li>
-                        ))}
-                      </ul>
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {validationErrors.length === 0 && (
-                  <Alert variant="success" className="bg-green-50 border-green-200 text-green-800">
-                    <Check className="h-4 w-4" />
-                    <AlertTitle>Application Valid</AlertTitle>
-                    <AlertDescription>
-                      The application has been successfully parsed and is ready to submit.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                
-                {/* Display parsed application details here */}
-              </>
-            )}
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate(-1)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSubmit}
-              disabled={!parsedApplication || validationErrors.length > 0 || isSubmitting}
-              className="bg-islamic-primary hover:bg-islamic-primary/90"
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Application'}
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    </AppLayout>
+            <div>
+              <Label htmlFor="district">District (Optional)</Label>
+              <Input id="district" type="text" {...register("district")} />
+            </div>
+            <div>
+              <Label htmlFor="state">State (Optional)</Label>
+              <Input id="state" type="text" {...register("state")} />
+            </div>
+          </div>
+        </div>
+        <div>
+          <Label>Current Residence</Label>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="currentArea">Area (Optional)</Label>
+              <Input id="currentArea" type="text" {...register("currentArea")} />
+            </div>
+            <div>
+              <Label htmlFor="currentMandal">Mandal (Optional)</Label>
+              <Input id="currentMandal" type="text" {...register("currentMandal")} />
+            </div>
+            <div>
+              <Label htmlFor="currentCity">City (Optional)</Label>
+              <Input id="currentCity" type="text" {...register("currentCity")} />
+            </div>
+            <div>
+              <Label htmlFor="currentState">State (Optional)</Label>
+              <Input id="currentState" type="text" {...register("currentState")} />
+            </div>
+          </div>
+        </div>
+        <div>
+          <Label>Referred By (Optional)</Label>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="referredByFullName">Full Name</Label>
+              <Input id="referredByFullName" type="text" {...register("referredByFullName")} />
+            </div>
+            <div>
+              <Label htmlFor="referredByMobile">Mobile Number</Label>
+              <Input id="referredByMobile" type="text" {...register("referredByMobile")} />
+              {errors.referredByMobile && <p className="text-red-500 text-sm">{errors.referredByMobile.message}</p>}
+            </div>
+            <div>
+              <Label htmlFor="referredByStudentId">Student ID</Label>
+              <Input id="referredByStudentId" type="text" {...register("referredByStudentId")} />
+            </div>
+            <div>
+              <Label htmlFor="referredByBatch">Batch</Label>
+              <Input id="referredByBatch" type="text" {...register("referredByBatch")} />
+            </div>
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="remarks">Remarks (Optional)</Label>
+          <Textarea id="remarks" {...register("remarks")} />
+        </div>
+        <div>
+          <Label htmlFor="classCode">Class</Label>
+          <Select onValueChange={(value) => setValue('classCode', value)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select a class" />
+            </SelectTrigger>
+            <SelectContent>
+              {classes.map((cls) => (
+                <SelectItem key={cls.id} value={cls.code}>
+                  {cls.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.classCode && <p className="text-red-500 text-sm">{errors.classCode.message}</p>}
+        </div>
+        <Button type="submit" disabled={submitLoading}>
+          {submitLoading ? "Submitting..." : "Submit Application"}
+        </Button>
+      </form>
+    </div>
   );
 };
 

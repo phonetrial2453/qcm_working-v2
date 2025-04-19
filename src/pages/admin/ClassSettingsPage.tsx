@@ -65,7 +65,7 @@ const ClassSettingsPage: React.FC = () => {
           maxAge: classDetails.validationRules?.ageRange?.max,
           allowedStates: classDetails.validationRules?.allowedStates?.join(', ') || '',
           minimumQualification: classDetails.validationRules?.minimumQualification || '',
-          template: classDetails.template || '',
+          template: classDetails.template || ''
         });
       }
     }

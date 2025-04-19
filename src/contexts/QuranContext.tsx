@@ -43,6 +43,7 @@ const QURAN_VERSES: QuranVerse[] = [
 
 interface QuranContextType {
   currentVerse: QuranVerse;
+  getRandomAyah: () => { text: string; reference: string };
 }
 
 const QuranContext = createContext<QuranContextType | undefined>(undefined);
@@ -66,8 +67,18 @@ export const QuranProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return () => clearInterval(interval);
   }, []);
 
+  // Add the getRandomAyah function
+  const getRandomAyah = () => {
+    const randomIndex = Math.floor(Math.random() * QURAN_VERSES.length);
+    const verse = QURAN_VERSES[randomIndex];
+    return {
+      text: verse.text,
+      reference: verse.reference
+    };
+  };
+
   return (
-    <QuranContext.Provider value={{ currentVerse }}>
+    <QuranContext.Provider value={{ currentVerse, getRandomAyah }}>
       {children}
     </QuranContext.Provider>
   );
