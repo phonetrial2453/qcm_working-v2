@@ -1,53 +1,59 @@
 
-import React from 'react';
+import React, { ReactNode, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import AppHeader from './AppHeader';
 import AppFooter from './AppFooter';
-import LoginPage from '@/pages/auth/LoginPage';
 
 interface AppLayoutProps {
-  children: React.ReactNode;
+  children: ReactNode;
   requireAuth?: boolean;
   adminOnly?: boolean;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({ 
   children, 
-  requireAuth = true,
-  adminOnly = false 
+  requireAuth = false,
+  adminOnly = false
 }) => {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+  const { isAuthenticated, isAdmin, user, loading } = useAuth();
+  const navigate = useNavigate();
 
-  if (loading) {
+  useEffect(() => {
+    if (loading) return;
+
+    if (requireAuth && !isAuthenticated) {
+      navigate('/login');
+    }
+
+    if (adminOnly && !isAdmin) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, isAdmin, requireAuth, adminOnly, navigate, loading]);
+
+  // If loading and auth is required, show loading state
+  if (loading && requireAuth) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-16 w-16 animate-spin rounded-full border-b-2 border-t-2 border-islamic-primary"></div>
-          <p className="text-lg font-medium">Loading...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-islamic-primary border-t-transparent"></div>
       </div>
     );
   }
 
-  // If authentication is required but user is not authenticated, show login
-  if (requireAuth && !isAuthenticated) {
-    return <LoginPage />;
-  }
-
-  // If admin access is required but user is not an admin, show unauthorized
+  // If admin only and user is not admin, don't render anything (will redirect)
   if (adminOnly && !isAdmin) {
-    return (
-      <div className="flex h-screen w-full flex-col items-center justify-center">
-        <h1 className="text-2xl font-bold text-red-600">Unauthorized Access</h1>
-        <p className="mt-2 text-gray-600">You do not have permission to access this area.</p>
-      </div>
-    );
+    return null;
+  }
+
+  // If auth required and not authenticated, don't render anything (will redirect)
+  if (requireAuth && !isAuthenticated) {
+    return null;
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       <AppHeader />
-      <main className="flex-1 px-4 py-8 md:px-6 lg:px-8 pattern-bg">
+      <main className="flex-grow py-8">
         {children}
       </main>
       <AppFooter />

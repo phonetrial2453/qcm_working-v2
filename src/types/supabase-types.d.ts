@@ -68,3 +68,60 @@ export interface StudentApplication {
   remarks?: string;
   [key: string]: any;
 }
+
+// Define a type for Application
+export interface Application {
+  id: string;
+  classCode: string;
+  status: string;
+  createdAt: string;
+  updatedAt?: string;
+  studentDetails: {
+    fullName: string;
+    mobile: string;
+    whatsapp?: string;
+    [key: string]: any;
+  };
+  otherDetails: {
+    email: string;
+    age?: number;
+    qualification?: string;
+    profession?: string;
+    [key: string]: any;
+  };
+  hometownDetails: {
+    area?: string;
+    city?: string;
+    district?: string;
+    state?: string;
+    [key: string]: any;
+  };
+  currentResidence: {
+    area?: string;
+    mandal?: string;
+    city?: string;
+    state?: string;
+    [key: string]: any;
+  };
+  referredBy: {
+    fullName?: string;
+    mobile?: string;
+    studentId?: string;
+    batch?: string;
+    [key: string]: any;
+  };
+  remarks?: string;
+  [key: string]: any;
+}
+
+// Define Class type
+export interface Class {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  validationRules: ValidationRules;
+  template?: string;
+  created_at: string;
+  updated_at: string;
+}

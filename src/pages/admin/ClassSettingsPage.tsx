@@ -106,7 +106,7 @@ const ClassSettingsPage: React.FC = () => {
   };
 
   return (
-    <AppLayout requireAuth={true} requiredRole="admin">
+    <AppLayout requireAuth={true}>
       <div className="container mx-auto max-w-3xl">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-islamic-primary">Class Settings</h1>
@@ -187,7 +187,7 @@ const ClassSettingsPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="allowedStates">Allowed States (comma-separated)</Label>
+                  <Label htmlFor="allowedStates">Allowed Locations</Label>
                   <Input id="allowedStates" placeholder="e.g., NY, CA, TX" {...form.register('allowedStates')} />
                   {form.formState.errors.allowedStates && (
                     <p className="text-sm text-red-500">{form.formState.errors.allowedStates.message}</p>
@@ -217,7 +217,7 @@ const ClassSettingsPage: React.FC = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="template">Template</Label>
-                  <Textarea id="template" placeholder="Template" {...form.register('template')} />
+                  <Textarea id="template" placeholder="Template" {...form.register('template')} rows={10} />
                   {form.formState.errors.template && (
                     <p className="text-sm text-red-500">{form.formState.errors.template.message}</p>
                   )}

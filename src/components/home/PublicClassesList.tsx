@@ -1,19 +1,31 @@
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Copy, Download, Info } from 'lucide-react';
+import { Clipboard, ClipboardCheck } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
-import { ClassRecord, ValidationRules } from '@/types/supabase-types';
 
-interface ClassInfo extends ClassRecord {
+interface ClassInfo {
+  id: string;
+  code: string;
+  name: string;
   description: string;
+  template?: string;
+  validation_rules?: {
+    ageRange?: {
+      min?: number;
+      max?: number;
+    };
+    allowedStates?: string[];
+    minimumQualification?: string;
+  };
 }
 
 const PublicClassesList: React.FC = () => {
   const [classes, setClasses] = useState<ClassInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [copiedClass, setCopiedClass] = useState<string | null>(null);
 
   useEffect(() => {
     fetchClasses();
@@ -21,150 +33,112 @@ const PublicClassesList: React.FC = () => {
 
   const fetchClasses = async () => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       const { data, error } = await supabase
         .from('classes')
-        .select('*')
-        .order('code');
-
+        .select('*');
+      
       if (error) throw error;
       
-      if (data) {
-        const formattedClasses: ClassInfo[] = data.map(cls => ({
-          ...cls,
-          description: cls.description || '',
-        }));
-        
-        setClasses(formattedClasses);
-      }
-    } catch (error: any) {
+      setClasses(data || []);
+    } catch (error) {
       console.error('Error fetching classes:', error);
-      toast.error('Failed to load classes: ' + error.message);
+      toast.error('Failed to load classes');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const copyClassInfo = (classInfo: ClassInfo) => {
-    const requirements = [];
-    
-    if (classInfo.validation_rules && typeof classInfo.validation_rules === 'object') {
-      const validationRules = classInfo.validation_rules as unknown as ValidationRules;
-      
-      if (validationRules.ageRange) {
-        requirements.push(`Age Range: ${validationRules.ageRange.min} - ${validationRules.ageRange.max} years`);
-      }
-      
-      if (validationRules.minimumQualification) {
-        requirements.push(`Minimum Qualification: ${validationRules.minimumQualification}`);
-      }
-      
-      if (validationRules.allowedStates && validationRules.allowedStates.length > 0) {
-        requirements.push(`Eligible Locations: ${validationRules.allowedStates.join(', ')}`);
-      }
-    }
-    
-    const classDetails = `
-Class: ${classInfo.name} (${classInfo.code})
-Description: ${classInfo.description || 'No description available'}
-
-Requirements:
-${requirements.length > 0 ? requirements.map(req => `- ${req}`).join('\n') : '- No specific requirements listed'}
-
-To apply for this class, please register and submit an application through our portal.
-    `.trim();
-    
-    navigator.clipboard.writeText(classDetails);
-    toast.success('Class information copied to clipboard');
-  };
-  
-  const copyApplicationTemplate = (classInfo: ClassInfo) => {
-    if (!classInfo.template) {
-      toast.error('No application template available for this class');
-      return;
-    }
-    
-    navigator.clipboard.writeText(classInfo.template);
+  const copyTemplateToClipboard = (classCode: string, template: string) => {
+    navigator.clipboard.writeText(template);
+    setCopiedClass(classCode);
     toast.success('Application form copied to clipboard');
+    
+    // Reset the copied status after 3 seconds
+    setTimeout(() => {
+      setCopiedClass(null);
+    }, 3000);
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-islamic-primary">Classes to be Started</CardTitle>
-        <CardDescription>
+    <div className="mb-12">
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-bold text-islamic-primary">Classes to be Started</h2>
+        <p className="text-muted-foreground">
           View details of the classes and their requirements. You can copy the Application form.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="flex justify-center p-4">
-            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-islamic-primary"></div>
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {classes.length > 0 ? (
-              classes.map((classInfo) => (
-                <Card key={classInfo.id || classInfo.code} className="overflow-hidden">
-                  <CardHeader className="bg-islamic-primary/5 pb-2">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <CardTitle className="text-xl">{classInfo.name}</CardTitle>
-                        <p className="text-sm font-mono text-muted-foreground">Code: {classInfo.code}</p>
-                      </div>
-                      <Button variant="ghost" size="icon" onClick={() => copyClassInfo(classInfo)} title="Copy class information">
-                        <Info className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-4">
-                    <p className="text-sm mb-4">{classInfo.description || 'No description available'}</p>
-                    
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-semibold flex items-center gap-1">
-                        <Info className="h-3 w-3" /> Requirements
-                      </h4>
-                      <ul className="text-xs space-y-1">
-                        {classInfo.validation_rules && typeof classInfo.validation_rules === 'object' && (
-                          <>
-                            {(classInfo.validation_rules as unknown as ValidationRules).ageRange && (
-                              <li>
-                                Age: {(classInfo.validation_rules as unknown as ValidationRules).ageRange.min} - {(classInfo.validation_rules as unknown as ValidationRules).ageRange.max} years
-                              </li>
-                            )}
-                            {(classInfo.validation_rules as unknown as ValidationRules).minimumQualification && (
-                              <li>Qualification: {(classInfo.validation_rules as unknown as ValidationRules).minimumQualification}</li>
-                            )}
-                            {(classInfo.validation_rules as unknown as ValidationRules).allowedStates && (classInfo.validation_rules as unknown as ValidationRules).allowedStates.length > 0 && (
-                              <li>
-                                Eligible Locations: {(classInfo.validation_rules as unknown as ValidationRules).allowedStates.slice(0, 3).join(', ')}
-                                {(classInfo.validation_rules as unknown as ValidationRules).allowedStates.length > 3 && ` and ${(classInfo.validation_rules as unknown as ValidationRules).allowedStates.length - 3} more`}
-                              </li>
-                            )}
-                          </>
-                        )}
-                      </ul>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="pt-0 px-6 pb-4 flex gap-2">
-                    <Button variant="outline" size="sm" className="w-full" onClick={() => copyClassInfo(classInfo)}>
-                      <Info className="h-4 w-4 mr-2" /> Copy Info
-                    </Button>
-                    <Button variant="outline" size="sm" className="w-full" onClick={() => copyApplicationTemplate(classInfo)}>
-                      <Copy className="h-4 w-4 mr-2" /> Copy Form
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-8 text-muted-foreground">
-                No classes are currently available.
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </p>
+      </div>
+      
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-islamic-primary border-t-transparent"></div>
+        </div>
+      ) : classes.length === 0 ? (
+        <Card>
+          <CardContent className="py-8">
+            <p className="text-center text-muted-foreground">No classes available at the moment.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {classes.map(classInfo => (
+            <Card key={classInfo.id}>
+              <CardHeader>
+                <CardTitle>{classInfo.name}</CardTitle>
+                <CardDescription>Code: {classInfo.code}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm">{classInfo.description || 'No description available'}</p>
+                
+                {classInfo.validation_rules && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">Requirements:</h4>
+                    <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
+                      {classInfo.validation_rules.ageRange && (
+                        <li>
+                          Age: {classInfo.validation_rules.ageRange.min || 'Any'} - {classInfo.validation_rules.ageRange.max || 'Any'} years
+                        </li>
+                      )}
+                      {classInfo.validation_rules.allowedStates && classInfo.validation_rules.allowedStates.length > 0 && (
+                        <li>
+                          Locations: {classInfo.validation_rules.allowedStates.join(', ')}
+                        </li>
+                      )}
+                      {classInfo.validation_rules.minimumQualification && (
+                        <li>
+                          Minimum Qualification: {classInfo.validation_rules.minimumQualification}
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+                
+                {classInfo.template && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => copyTemplateToClipboard(classInfo.code, classInfo.template || '')}
+                  >
+                    {copiedClass === classInfo.code ? (
+                      <>
+                        <ClipboardCheck className="mr-2 h-4 w-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Clipboard className="mr-2 h-4 w-4" />
+                        Copy Form
+                      </>
+                    )}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 

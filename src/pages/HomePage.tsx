@@ -117,12 +117,12 @@ const HomePage: React.FC = () => {
           
           <Card>
             <CardHeader>
-              <CardTitle>Quick Status Checks</CardTitle>
-              <CardDescription>Easy application status lookup</CardDescription>
+              <CardTitle>Application Management</CardTitle>
+              <CardDescription>Comprehensive tools for moderators and administrators</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Applicants can check their status using their unique application ID, with the option to copy details.
+                Moderators and administrators can check application status, process submissions, and manage the entire workflow.
               </p>
             </CardContent>
           </Card>

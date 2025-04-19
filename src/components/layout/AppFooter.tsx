@@ -1,22 +1,39 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuran } from '@/contexts/QuranContext';
 
 const AppFooter: React.FC = () => {
-  const { currentVerse } = useQuran();
-  const year = new Date().getFullYear();
+  const { getRandomAyah } = useQuran();
+  const [ayah, setAyah] = useState({ text: '', reference: '' });
+  const [animationClass, setAnimationClass] = useState('');
+
+  useEffect(() => {
+    const randomAyah = getRandomAyah();
+    setAyah(randomAyah);
+    
+    // Add animation class after a delay to trigger the animation
+    const timer = setTimeout(() => {
+      setAnimationClass('animate-in');
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [getRandomAyah]);
 
   return (
-    <footer className="bg-islamic-primary py-6 text-white">
+    <footer className="bg-islamic-primary text-white py-6 mt-auto">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col items-center justify-center space-y-4">
-          <div className="text-center max-w-2xl">
-            <p className="italic text-islamic-accent mb-1">{currentVerse.text}</p>
-            <p className="text-sm text-white/70">{currentVerse.reference}</p>
+        <div className="max-w-3xl mx-auto text-center">
+          <div className={`p-4 rounded-lg bg-islamic-primary/80 transition-all duration-1000 transform ${animationClass}`}>
+            <p className="text-xl font-arabic leading-relaxed transition-all hover:scale-105 duration-500">
+              {ayah.text}
+            </p>
+            <p className="text-sm text-islamic-accent mt-2">
+              {ayah.reference}
+            </p>
           </div>
-          <div className="h-px w-24 bg-islamic-accent/30 my-2"></div>
-          <p className="text-sm text-white/70">
-            &copy; {year} Quran Classes Application Manager. All rights reserved.
+          
+          <p className="mt-6 text-xs text-islamic-accent/70">
+            &copy; {new Date().getFullYear()} Quran Classes Application Manager. All rights reserved.
           </p>
         </div>
       </div>
