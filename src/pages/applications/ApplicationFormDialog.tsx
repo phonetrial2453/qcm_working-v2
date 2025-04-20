@@ -71,23 +71,35 @@ export function ApplicationFormDialog() {
         const lines = section.split('\n');
         const sectionTitle = lines[0].trim().toUpperCase();
 
+        const processLines = (targetObj: any, lines: string[]) => {
+          lines.slice(1).forEach(line => {
+            const [key, value] = line.split(':').map(s => s.trim());
+            if (key && value) {
+              const formattedKey = key.toLowerCase().replace(/\s+/g, '');
+              if (formattedKey === 'age') {
+                targetObj[formattedKey] = parseInt(value, 10);
+              } else {
+                targetObj[formattedKey] = value;
+              }
+            }
+          });
+        };
+
         switch(sectionTitle) {
           case 'STUDENT DETAILS':
-            lines.slice(1).forEach(line => {
-              const [key, value] = line.split(':').map(s => s.trim());
-              if (key && value) {
-                parsedData.studentDetails[key.toLowerCase().replace(/\s+/g, '')] = value;
-              }
-            });
+            processLines(parsedData.studentDetails, lines);
             break;
           case 'OTHER DETAILS':
-            lines.slice(1).forEach(line => {
-              const [key, value] = line.split(':').map(s => s.trim());
-              if (key && value) {
-                parsedData.otherDetails[key.toLowerCase().replace(/\s+/g, '')] = 
-                  key.toLowerCase().includes('age') ? parseInt(value, 10) : value;
-              }
-            });
+            processLines(parsedData.otherDetails, lines);
+            break;
+          case 'CURRENT RESIDENCE':
+            processLines(parsedData.currentResidence, lines);
+            break;
+          case 'HOMETOWN DETAILS':
+            processLines(parsedData.hometownDetails, lines);
+            break;
+          case 'REFERRED BY':
+            processLines(parsedData.referredBy, lines);
             break;
         }
       });
@@ -114,6 +126,7 @@ export function ApplicationFormDialog() {
   const handleSubmit = async () => {
     const parsedData = parseApplicationText(applicationText);
     if (!parsedData) {
+      toast.error('Please fix validation errors before submitting');
       return;
     }
 
@@ -122,10 +135,12 @@ export function ApplicationFormDialog() {
       if (applicationId) {
         toast.success('Application submitted successfully!');
         setIsOpen(false);
+        setApplicationText('');
         navigate('/applications');
       }
     } catch (error) {
-      toast.error('Failed to submit application');
+      console.error('Application submission error:', error);
+      toast.error('Failed to submit application. Please try again.');
     }
   };
 
@@ -193,6 +208,7 @@ export function ApplicationFormDialog() {
             <Button 
               onClick={handleSubmit}
               className="bg-islamic-primary hover:bg-islamic-primary/90"
+              disabled={validationErrors.length > 0}
             >
               Submit Application
             </Button>
