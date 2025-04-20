@@ -291,7 +291,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   // Format application for display
   const formatApplicationForDisplay = (app: Application) => {
-    // Safe access to properties
+    // Safe access to properties with default empty objects to prevent null/undefined errors
     const studentDetails = app.studentDetails || {};
     const otherDetails = app.otherDetails || {};
     const currentResidence = app.currentResidence || {};
