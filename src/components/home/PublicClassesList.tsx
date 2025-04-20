@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Class } from '@/types/supabase-types';
 import { Link } from 'react-router-dom';
+import { toast } from '@/components/ui/sonner';
+import { Copy } from 'lucide-react';
 
 interface ClassInfo {
   id: string;
@@ -51,7 +53,7 @@ const PublicClassesList: React.FC = () => {
                   allowedStates: undefined, 
                   minimumQualification: undefined 
                 },
-            template: cls.template as string || '',
+            template: cls.template || '',
             created_at: cls.created_at,
             updated_at: cls.updated_at
           }));
@@ -69,6 +71,17 @@ const PublicClassesList: React.FC = () => {
     fetchClasses();
   }, []);
 
+  const copyTemplate = (template: string, className: string) => {
+    if (!template) {
+      toast.error('No template available for this class');
+      return;
+    }
+    
+    navigator.clipboard.writeText(template)
+      .then(() => toast.success(`${className} form template copied to clipboard`))
+      .catch(() => toast.error('Failed to copy template'));
+  };
+
   if (loading) {
     return <p>Loading classes...</p>;
   }
@@ -79,15 +92,29 @@ const PublicClassesList: React.FC = () => {
 
   return (
     <div className="container mx-auto py-8">
-      <h2 className="text-2xl font-semibold mb-4">Available Classes</h2>
+      <h2 className="text-2xl font-semibold mb-4">Classes to be Started</h2>
+      <p className="text-muted-foreground mb-6">View details of the classes and their requirements. You can copy the Application form.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {classes.map((cls) => (
           <div key={cls.id} className="bg-white rounded-lg shadow-md p-4">
             <h3 className="text-lg font-semibold">{cls.name}</h3>
-            <p className="text-gray-600">{cls.description}</p>
-            <Link to={`/application?classCode=${cls.code}`} className="inline-block mt-4 bg-islamic-primary text-white py-2 px-4 rounded hover:bg-islamic-primary-dark transition-colors">
-              Apply Now
-            </Link>
+            <p className="text-gray-600 mb-2">{cls.description}</p>
+            
+            <div className="flex flex-wrap gap-2 mt-3">
+              <Link to={`/application?classCode=${cls.code}`} className="inline-block mt-1 bg-islamic-primary text-white py-2 px-4 rounded hover:bg-islamic-primary/90 transition-colors">
+                Apply Now
+              </Link>
+              
+              {cls.template && (
+                <button 
+                  onClick={() => copyTemplate(cls.template || '', cls.name)}
+                  className="inline-flex items-center mt-1 bg-slate-100 text-slate-700 py-2 px-4 rounded hover:bg-slate-200 transition-colors"
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Form
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -96,4 +123,3 @@ const PublicClassesList: React.FC = () => {
 };
 
 export default PublicClassesList;
-

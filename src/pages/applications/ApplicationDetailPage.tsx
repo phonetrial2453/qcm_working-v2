@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApplications } from '@/contexts/ApplicationContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,15 +30,45 @@ import { ArrowLeft, Copy, CheckCircle, XCircle, Clock, AlertCircle, Download } f
 
 const ApplicationDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { getApplication, updateApplication } = useApplications();
+  const { applications, updateApplication, fetchApplications } = useApplications();
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
+
+  const [loading, setLoading] = useState(true);
   
-  const application = getApplication(id || '');
+  // Find the application by id
+  const application = id ? applications.find(app => app.id === id) : undefined;
   
   const [newStatus, setNewStatus] = useState('');
   const [remarks, setRemarks] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
+
+  useEffect(() => {
+    // Fetch applications data when component mounts
+    const loadData = async () => {
+      try {
+        await fetchApplications();
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [fetchApplications]);
+  
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto py-8 text-center">
+          <div className="animate-pulse">
+            <div className="h-12 w-12 mx-auto bg-muted rounded-full mb-4"></div>
+            <div className="h-6 w-48 mx-auto bg-muted rounded mb-2"></div>
+            <div className="h-4 w-64 mx-auto bg-muted rounded mb-6"></div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
   
   if (!application) {
     return (
@@ -102,24 +131,29 @@ const ApplicationDetailPage: React.FC = () => {
       return;
     }
     
-    const updated = updateApplication(application.id, {
-      status: newStatus as any,
+    updateApplication(application.id, {
+      status: newStatus as 'approved' | 'rejected' | 'pending',
       remarks: remarks,
       updatedAt: new Date().toISOString(),
-    });
-    
-    if (updated) {
-      setOpenDialog(false);
-      toast.success(`Application status updated to ${newStatus}`);
-    }
+    })
+      .then((result) => {
+        if (result) {
+          setOpenDialog(false);
+          toast.success(`Application status updated to ${newStatus}`);
+        }
+      })
+      .catch(err => {
+        console.error("Error updating application:", err);
+        toast.error("Failed to update application status");
+      });
   };
   
   // Copy to clipboard
   const copyToClipboard = () => {
     const statusInfo = `
 Application ID: ${application.id}
-Name: ${application.studentDetails.fullName}
-Mobile: ${application.studentDetails.mobile}
+Name: ${application.studentDetails?.fullName || 'Unknown'}
+Mobile: ${application.studentDetails?.mobile || 'N/A'}
 Status: ${application.status.toUpperCase()}
 ${application.remarks ? `Remarks: ${application.remarks}` : ''}
     `.trim();
@@ -247,15 +281,15 @@ ${application.remarks ? `Remarks: ${application.remarks}` : ''}
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-muted-foreground">Full Name</p>
-                    <p className="font-medium">{application.studentDetails.fullName}</p>
+                    <p className="font-medium">{application.studentDetails?.fullName}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Mobile Number</p>
-                    <p className="font-medium">{application.studentDetails.mobile}</p>
+                    <p className="font-medium">{application.studentDetails?.mobile}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">WhatsApp Number</p>
-                    <p className="font-medium">{application.studentDetails.whatsapp}</p>
+                    <p className="font-medium">{application.studentDetails?.whatsapp}</p>
                   </div>
                 </div>
                 
@@ -265,19 +299,19 @@ ${application.remarks ? `Remarks: ${application.remarks}` : ''}
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-muted-foreground">Area/Locality</p>
-                    <p className="font-medium">{application.hometownDetails.area}</p>
+                    <p className="font-medium">{application.hometownDetails?.area}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">City</p>
-                    <p className="font-medium">{application.hometownDetails.city}</p>
+                    <p className="font-medium">{application.hometownDetails?.city}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">District</p>
-                    <p className="font-medium">{application.hometownDetails.district}</p>
+                    <p className="font-medium">{application.hometownDetails?.district}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">State</p>
-                    <p className="font-medium">{application.hometownDetails.state}</p>
+                    <p className="font-medium">{application.hometownDetails?.state}</p>
                   </div>
                 </div>
               </div>
@@ -287,19 +321,19 @@ ${application.remarks ? `Remarks: ${application.remarks}` : ''}
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-muted-foreground">Area/Locality</p>
-                    <p className="font-medium">{application.currentResidence.area}</p>
+                    <p className="font-medium">{application.currentResidence?.area}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Mandal</p>
-                    <p className="font-medium">{application.currentResidence.mandal}</p>
+                    <p className="font-medium">{application.currentResidence?.mandal}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">City</p>
-                    <p className="font-medium">{application.currentResidence.city}</p>
+                    <p className="font-medium">{application.currentResidence?.city}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">State</p>
-                    <p className="font-medium">{application.currentResidence.state}</p>
+                    <p className="font-medium">{application.currentResidence?.state}</p>
                   </div>
                 </div>
                 
@@ -309,19 +343,19 @@ ${application.remarks ? `Remarks: ${application.remarks}` : ''}
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-muted-foreground">Age</p>
-                    <p className="font-medium">{application.otherDetails.age}</p>
+                    <p className="font-medium">{application.otherDetails?.age}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Qualification</p>
-                    <p className="font-medium">{application.otherDetails.qualification}</p>
+                    <p className="font-medium">{application.otherDetails?.qualification}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Profession</p>
-                    <p className="font-medium">{application.otherDetails.profession}</p>
+                    <p className="font-medium">{application.otherDetails?.profession}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Email Address</p>
-                    <p className="font-medium">{application.otherDetails.email}</p>
+                    <p className="font-medium">{application.otherDetails?.email}</p>
                   </div>
                 </div>
               </div>
@@ -334,19 +368,19 @@ ${application.remarks ? `Remarks: ${application.remarks}` : ''}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Full Name</p>
-                  <p className="font-medium">{application.referredBy.fullName}</p>
+                  <p className="font-medium">{application.referredBy?.fullName}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Mobile Number</p>
-                  <p className="font-medium">{application.referredBy.mobile}</p>
+                  <p className="font-medium">{application.referredBy?.mobile}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Student ID#</p>
-                  <p className="font-medium">{application.referredBy.studentId || 'N/A'}</p>
+                  <p className="font-medium">{application.referredBy?.studentId || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Batch#</p>
-                  <p className="font-medium">{application.referredBy.batch || 'N/A'}</p>
+                  <p className="font-medium">{application.referredBy?.batch || 'N/A'}</p>
                 </div>
               </div>
             </div>

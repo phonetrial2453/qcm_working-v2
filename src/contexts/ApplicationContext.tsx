@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Class, ClassRecord, Application, StudentApplication } from '@/types/supabase-types';
@@ -12,10 +13,11 @@ interface ApplicationContextType {
   error: string | null;
   fetchApplications: () => Promise<void>;
   refreshClasses: () => Promise<void>;
-  createApplication: (applicationData: StudentApplication) => Promise<string | null>;
-  updateApplication: (applicationId: string, applicationData: StudentApplication) => Promise<string | null>;
+  createApplication: (applicationData: Partial<StudentApplication>) => Promise<string | null>;
+  updateApplication: (applicationId: string, applicationData: Partial<StudentApplication>) => Promise<string | null>;
   deleteApplication: (applicationId: string) => Promise<void>;
   formatApplicationForDisplay: (app: Application) => any;
+  getApplication: (id: string) => Application | undefined;
 }
 
 // Create the context
@@ -53,17 +55,16 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       if (data) {
         // Transform the data to match the Class type
         const transformedClasses = data.map(cls => ({
-          ...cls,
           id: cls.id,
           code: cls.code,
           name: cls.name,
           description: cls.description || '',
           validationRules: transformValidationRules(cls.validation_rules),
-          template: cls.template as string || '',
+          template: cls.template || '',
           created_at: cls.created_at,
           updated_at: cls.updated_at
         }));
-        setClasses(transformedClasses);
+        setClasses(transformedClasses as Class[]);
       }
     } catch (err) {
       console.error('Error fetching classes:', err);
@@ -92,11 +93,11 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
         // Transform to match Application type
         const transformedApplications = data.map(app => {
           // Safely handle JSON fields
-          const studentDetails = app.student_details as { [key: string]: any };
-          const otherDetails = app.other_details as { [key: string]: any };
-          const hometownDetails = app.hometown_details as { [key: string]: any };
-          const currentResidence = app.current_residence as { [key: string]: any };
-          const referredBy = app.referred_by as { [key: string]: any };
+          const studentDetails = app.student_details as { [key: string]: any } || {};
+          const otherDetails = app.other_details as { [key: string]: any } || {};
+          const hometownDetails = app.hometown_details as { [key: string]: any } || {};
+          const currentResidence = app.current_residence as { [key: string]: any } || {};
+          const referredBy = app.referred_by as { [key: string]: any } || {};
 
           return {
             id: app.id,
@@ -138,7 +139,13 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
               batch: referredBy?.batch,
               ...referredBy
             },
-            remarks: app.remarks
+            remarks: app.remarks,
+            callResponse: app.call_response,
+            studentNature: app.student_nature,
+            studentCategory: app.student_category,
+            followUpBy: app.followup_by,
+            naqeeb: app.naqeeb,
+            naqeebResponse: app.naqeeb_response
           };
         });
 
@@ -152,21 +159,28 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
+  // Get a specific application by ID
+  const getApplication = (id: string): Application | undefined => {
+    return applications.find(app => app.id === id);
+  };
+
   // Function to create a new application
-  const createApplication = async (applicationData: StudentApplication): Promise<string | null> => {
+  const createApplication = async (applicationData: Partial<StudentApplication>): Promise<string | null> => {
     try {
       const { data, error } = await supabase
         .from('applications')
         .insert([
           {
+            id: applicationData.id,
             class_code: applicationData.classCode,
-            status: applicationData.status,
-            student_details: applicationData.studentDetails,
-            other_details: applicationData.otherDetails,
-            hometown_details: applicationData.hometownDetails,
-            current_residence: applicationData.currentResidence,
-            referred_by: applicationData.referredBy,
+            status: applicationData.status || 'pending',
+            student_details: applicationData.studentDetails || {},
+            other_details: applicationData.otherDetails || {},
+            hometown_details: applicationData.hometownDetails || {},
+            current_residence: applicationData.currentResidence || {},
+            referred_by: applicationData.referredBy || {},
             remarks: applicationData.remarks,
+            user_id: user?.id
           },
         ])
         .select('id')
@@ -178,6 +192,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
         return null;
       }
 
+      await fetchApplications(); // Refresh applications after creating
       return data.id;
     } catch (err) {
       console.error('Error creating application:', err);
@@ -187,20 +202,25 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   // Function to update an existing application
-  const updateApplication = async (applicationId: string, applicationData: StudentApplication): Promise<string | null> => {
+  const updateApplication = async (applicationId: string, applicationData: Partial<StudentApplication>): Promise<string | null> => {
     try {
+      const updates: Record<string, any> = {};
+      
+      if (applicationData.classCode) updates.class_code = applicationData.classCode;
+      if (applicationData.status) updates.status = applicationData.status;
+      if (applicationData.studentDetails) updates.student_details = applicationData.studentDetails;
+      if (applicationData.otherDetails) updates.other_details = applicationData.otherDetails;
+      if (applicationData.hometownDetails) updates.hometown_details = applicationData.hometownDetails;
+      if (applicationData.currentResidence) updates.current_residence = applicationData.currentResidence;
+      if (applicationData.referredBy) updates.referred_by = applicationData.referredBy;
+      if (applicationData.remarks !== undefined) updates.remarks = applicationData.remarks;
+      
+      // For other fields not in StudentApplication type
+      if ('updatedAt' in applicationData) updates.updated_at = applicationData.updatedAt;
+      
       const { data, error } = await supabase
         .from('applications')
-        .update({
-          class_code: applicationData.classCode,
-          status: applicationData.status,
-          student_details: applicationData.studentDetails,
-          other_details: applicationData.otherDetails,
-          hometown_details: applicationData.hometownDetails,
-          current_residence: applicationData.currentResidence,
-          referred_by: applicationData.referredBy,
-          remarks: applicationData.remarks,
-        })
+        .update(updates)
         .eq('id', applicationId)
         .select('id')
         .single();
@@ -210,6 +230,15 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
         setError('Failed to update application');
         return null;
       }
+
+      // Update local state
+      setApplications(prev => 
+        prev.map(app => 
+          app.id === applicationId 
+            ? { ...app, ...applicationData, updatedAt: updates.updated_at || app.updatedAt } 
+            : app
+        )
+      );
 
       return data.id;
     } catch (err) {
@@ -230,6 +259,9 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       if (error) {
         console.error('Error deleting application:', error);
         setError('Failed to delete application');
+      } else {
+        // Update local state
+        setApplications(prev => prev.filter(app => app.id !== applicationId));
       }
     } catch (err) {
       console.error('Error deleting application:', err);
@@ -262,9 +294,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     // Safe access to properties
     const studentDetails = app.studentDetails || {};
     const otherDetails = app.otherDetails || {};
-    const hometownDetails = app.hometownDetails || {};
     const currentResidence = app.currentResidence || {};
-    const referredBy = app.referredBy || {};
 
     return {
       id: app.id,
@@ -291,7 +321,8 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
         createApplication,
         updateApplication,
         deleteApplication,
-        formatApplicationForDisplay
+        formatApplicationForDisplay,
+        getApplication
       }}
     >
       {children}

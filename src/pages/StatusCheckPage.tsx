@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApplications } from '@/contexts/ApplicationContext';
@@ -14,12 +13,12 @@ import { Search, Copy, ArrowRight } from 'lucide-react';
 const StatusCheckPage: React.FC = () => {
   const [applicationId, setApplicationId] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const { getApplication, applications } = useApplications();
+  const { applications } = useApplications();
   const navigate = useNavigate();
   
   const [searchResult, setSearchResult] = useState<{
     found: boolean;
-    application?: ReturnType<typeof getApplication>;
+    application?: any;
   } | null>(null);
   
   const handleSearch = (e: React.FormEvent) => {
@@ -34,7 +33,7 @@ const StatusCheckPage: React.FC = () => {
     
     // Simulate network delay
     setTimeout(() => {
-      const application = getApplication(applicationId);
+      const application = applications.find(app => app.id === applicationId);
       
       setSearchResult({
         found: !!application,
