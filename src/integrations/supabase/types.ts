@@ -96,111 +96,6 @@ export type Database = {
         }
         Relationships: []
       }
-      "applications-class1": {
-        Row: {
-          "Application ID": number | null
-          Area: string | null
-          "Batch#": string | null
-          "Birth Year (YYYY)": string | null
-          "Call Response": string | null
-          City: string | null
-          Country: string | null
-          District: string | null
-          "Email Address": string | null
-          Final_StudentID: number | null
-          "FollowUp By": string | null
-          HomeCntry: string | null
-          "Mobile#": string | null
-          Name: string | null
-          "Naqeeb (1)": string | null
-          "Naqeeb Response": string | null
-          NaqeebCleaned: string | null
-          "Phy Meet": string | null
-          ProcessDate: string | null
-          Profession: string | null
-          Qualification: string | null
-          Ref_FullName: string | null
-          Ref_Mobile: string | null
-          RngStart: number | null
-          Seq: number | null
-          State: string | null
-          "Student Category": string | null
-          "Student ID#": string | null
-          "Student Nature": string | null
-          "Town/City": string | null
-          "WhatsApp#": string | null
-          Zone: string | null
-        }
-        Insert: {
-          "Application ID"?: number | null
-          Area?: string | null
-          "Batch#"?: string | null
-          "Birth Year (YYYY)"?: string | null
-          "Call Response"?: string | null
-          City?: string | null
-          Country?: string | null
-          District?: string | null
-          "Email Address"?: string | null
-          Final_StudentID?: number | null
-          "FollowUp By"?: string | null
-          HomeCntry?: string | null
-          "Mobile#"?: string | null
-          Name?: string | null
-          "Naqeeb (1)"?: string | null
-          "Naqeeb Response"?: string | null
-          NaqeebCleaned?: string | null
-          "Phy Meet"?: string | null
-          ProcessDate?: string | null
-          Profession?: string | null
-          Qualification?: string | null
-          Ref_FullName?: string | null
-          Ref_Mobile?: string | null
-          RngStart?: number | null
-          Seq?: number | null
-          State?: string | null
-          "Student Category"?: string | null
-          "Student ID#"?: string | null
-          "Student Nature"?: string | null
-          "Town/City"?: string | null
-          "WhatsApp#"?: string | null
-          Zone?: string | null
-        }
-        Update: {
-          "Application ID"?: number | null
-          Area?: string | null
-          "Batch#"?: string | null
-          "Birth Year (YYYY)"?: string | null
-          "Call Response"?: string | null
-          City?: string | null
-          Country?: string | null
-          District?: string | null
-          "Email Address"?: string | null
-          Final_StudentID?: number | null
-          "FollowUp By"?: string | null
-          HomeCntry?: string | null
-          "Mobile#"?: string | null
-          Name?: string | null
-          "Naqeeb (1)"?: string | null
-          "Naqeeb Response"?: string | null
-          NaqeebCleaned?: string | null
-          "Phy Meet"?: string | null
-          ProcessDate?: string | null
-          Profession?: string | null
-          Qualification?: string | null
-          Ref_FullName?: string | null
-          Ref_Mobile?: string | null
-          RngStart?: number | null
-          Seq?: number | null
-          State?: string | null
-          "Student Category"?: string | null
-          "Student ID#"?: string | null
-          "Student Nature"?: string | null
-          "Town/City"?: string | null
-          "WhatsApp#"?: string | null
-          Zone?: string | null
-        }
-        Relationships: []
-      }
       classes: {
         Row: {
           code: string
@@ -208,6 +103,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          template: string | null
           updated_at: string
           validation_rules: Json | null
         }
@@ -217,6 +113,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          template?: string | null
           updated_at?: string
           validation_rules?: Json | null
         }
@@ -226,6 +123,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          template?: string | null
           updated_at?: string
           validation_rules?: Json | null
         }

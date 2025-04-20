@@ -15,7 +15,7 @@ interface ClassInfo {
     allowedStates?: string[];
     minimumQualification?: string;
   };
-  template?: string;
+  template: string | null;
   created_at: string;
   updated_at: string;
 }

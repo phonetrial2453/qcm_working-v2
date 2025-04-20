@@ -1,11 +1,58 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Class, ClassRecord, Application, StudentApplication } from '@/types/supabase-types';
 import { useAuth } from './AuthContext';
 import { Json } from '@/integrations/supabase/types';
 
-// Type definition for the context
+export interface Application {
+  id: string;
+  classCode: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  studentDetails: {
+    fullName?: string;
+    mobile?: string;
+    whatsapp?: string;
+    [key: string]: any;
+  };
+  otherDetails: {
+    email?: string;
+    age?: number;
+    qualification?: string;
+    profession?: string;
+    [key: string]: any;
+  };
+  hometownDetails: {
+    area?: string;
+    city?: string;
+    district?: string;
+    state?: string;
+    [key: string]: any;
+  };
+  currentResidence: {
+    area?: string;
+    mandal?: string;
+    city?: string;
+    state?: string;
+    [key: string]: any;
+  };
+  referredBy: {
+    fullName?: string;
+    mobile?: string;
+    studentId?: string;
+    batch?: string;
+    [key: string]: any;
+  };
+  remarks: string;
+  callResponse: string;
+  studentNature: string;
+  studentCategory: string;
+  followUpBy: string;
+  naqeeb: string;
+  naqeebResponse: string;
+}
+
 interface ApplicationContextType {
   applications: Application[];
   classes: Class[];
@@ -20,10 +67,8 @@ interface ApplicationContextType {
   getApplication: (id: string) => Application | undefined;
 }
 
-// Create the context
 const ApplicationContext = createContext<ApplicationContextType | undefined>(undefined);
 
-// Provider component
 export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -31,7 +76,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, user } = useAuth();
 
-  // Convert JSON type to expected validation rules type
   const transformValidationRules = (rules: Json) => {
     const typedRules = rules as {
       ageRange?: { min?: number; max?: number };
@@ -41,7 +85,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     return typedRules;
   };
 
-  // Function to fetch classes
   const fetchClasses = async () => {
     try {
       const { data, error } = await supabase
@@ -53,7 +96,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       }
 
       if (data) {
-        // Transform the data to match the Class type
         const transformedClasses = data.map(cls => ({
           id: cls.id,
           code: cls.code,
@@ -72,7 +114,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
-  // Function to fetch applications
   const fetchApplications = async () => {
     if (!isAuthenticated) {
       setApplications([]);
@@ -90,9 +131,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       }
 
       if (data) {
-        // Transform to match Application type
         const transformedApplications = data.map(app => {
-          // Safely handle JSON fields
           const studentDetails = app.student_details as { [key: string]: any } || {};
           const otherDetails = app.other_details as { [key: string]: any } || {};
           const hometownDetails = app.hometown_details as { [key: string]: any } || {};
@@ -159,12 +198,10 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
-  // Get a specific application by ID
   const getApplication = (id: string): Application | undefined => {
     return applications.find(app => app.id === id);
   };
 
-  // Function to create a new application
   const createApplication = async (applicationData: Partial<StudentApplication>): Promise<string | null> => {
     try {
       const { data, error } = await supabase
@@ -192,7 +229,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
         return null;
       }
 
-      await fetchApplications(); // Refresh applications after creating
+      await fetchApplications();
       return data.id;
     } catch (err) {
       console.error('Error creating application:', err);
@@ -201,7 +238,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
-  // Function to update an existing application
   const updateApplication = async (applicationId: string, applicationData: Partial<StudentApplication>): Promise<string | null> => {
     try {
       const updates: Record<string, any> = {};
@@ -214,9 +250,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       if (applicationData.currentResidence) updates.current_residence = applicationData.currentResidence;
       if (applicationData.referredBy) updates.referred_by = applicationData.referredBy;
       if (applicationData.remarks !== undefined) updates.remarks = applicationData.remarks;
-      
-      // For other fields not in StudentApplication type
-      if ('updatedAt' in applicationData) updates.updated_at = applicationData.updatedAt;
       
       const { data, error } = await supabase
         .from('applications')
@@ -231,11 +264,10 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
         return null;
       }
 
-      // Update local state
       setApplications(prev => 
         prev.map(app => 
           app.id === applicationId 
-            ? { ...app, ...applicationData, updatedAt: updates.updated_at || app.updatedAt } 
+            ? { ...app, ...applicationData } 
             : app
         )
       );
@@ -248,7 +280,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
-  // Function to delete an application
   const deleteApplication = async (applicationId: string): Promise<void> => {
     try {
       const { error } = await supabase
@@ -260,7 +291,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
         console.error('Error deleting application:', error);
         setError('Failed to delete application');
       } else {
-        // Update local state
         setApplications(prev => prev.filter(app => app.id !== applicationId));
       }
     } catch (err) {
@@ -269,12 +299,10 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
-  // Function to refresh classes
   const refreshClasses = async () => {
     await fetchClasses();
   };
 
-  // Initial data fetch
   useEffect(() => {
     fetchClasses();
     if (isAuthenticated) {
@@ -285,13 +313,10 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   useEffect(() => {
     if (error) {
       console.error('Application Context Error:', error);
-      // Implement your error handling logic here, e.g., display a toast notification
     }
   }, [error]);
 
-  // Format application for display
   const formatApplicationForDisplay = (app: Application) => {
-    // Safe access to properties with default empty objects to prevent null/undefined errors
     const studentDetails = app.studentDetails || {};
     const otherDetails = app.otherDetails || {};
     const currentResidence = app.currentResidence || {};
@@ -308,7 +333,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     };
   };
 
-  // Provide the context
   return (
     <ApplicationContext.Provider
       value={{
@@ -330,7 +354,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   );
 };
 
-// Hook to use the context
 export const useApplications = () => {
   const context = useContext(ApplicationContext);
   if (context === undefined) {
