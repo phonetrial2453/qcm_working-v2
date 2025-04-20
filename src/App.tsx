@@ -22,6 +22,7 @@ import ReportsPage from "./pages/admin/ReportsPage";
 import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
 import ApplicationPage from './pages/ApplicationPage';
+import ClassesPage from './pages/admin/ClassesPage';
 
 const queryClient = new QueryClient();
 
@@ -48,7 +49,10 @@ const App = () => (
                 
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/moderators" element={<ModeratorManagementPage />} />
-                <Route path="/admin/classes" element={<ClassSettingsPage />} />
+                <Route path="/admin/classes" element={<ClassesPage />} />
+                <Route path="/admin/classes/new" element={<ClassSettingsPage />} />
+                <Route path="/admin/classes/edit/:classCode" element={<ClassSettingsPage />} />
+                
                 <Route path="/admin/reports" element={<ReportsPage />} />
                 
                 <Route path="/application" element={<ApplicationPage />} />

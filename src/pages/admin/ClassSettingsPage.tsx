@@ -1,15 +1,12 @@
-// src/pages/admin/ClassSettingsPage.tsx
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-
 import { useApplications } from '@/contexts/ApplicationContext';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Form,
@@ -23,7 +20,6 @@ import {
 import { toast } from '@/components/ui/sonner';
 import { ArrowLeft } from 'lucide-react';
 
-// Define the form schema using Zod
 const formSchema = z.object({
   code: z.string().min(4, {
     message: 'Class code must be at least 4 characters.',
@@ -45,9 +41,10 @@ const formSchema = z.object({
 
 const ClassSettingsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { classCode } = useParams();
   const { classes, refreshClasses } = useApplications();
+  const isEditing = Boolean(classCode);
 
-  // Initialize the form
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -63,35 +60,58 @@ const ClassSettingsPage: React.FC = () => {
     },
   });
 
-  // Handle form submission
+  useEffect(() => {
+    if (isEditing && classCode) {
+      const classData = classes.find(c => c.code === classCode);
+      if (classData) {
+        form.reset({
+          code: classData.code,
+          name: classData.name,
+          description: classData.description || '',
+          validationRules: classData.validationRules || {
+            ageRange: { min: undefined, max: undefined },
+            allowedStates: [],
+            minimumQualification: '',
+          },
+          template: classData.template || '',
+        });
+      }
+    }
+  }, [isEditing, classCode, classes]);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      // Check if the class code already exists
-      const existingClass = classes.find((cls) => cls.code === values.code);
-      if (existingClass) {
-        toast.error('Class code already exists. Please use a different code.');
-        return;
+      if (!isEditing) {
+        const existingClass = classes.find((cls) => cls.code === values.code);
+        if (existingClass) {
+          toast.error('Class code already exists. Please use a different code.');
+          return;
+        }
       }
 
-      // Simulate saving to a database
-      console.log('Saving class settings:', values);
-      // In a real application, you would save the values to a database here
+      const { error } = await supabase
+        .from('classes')
+        .upsert([
+          {
+            code: values.code,
+            name: values.name,
+            description: values.description,
+            validation_rules: values.validationRules,
+            template: values.template,
+          },
+        ]);
 
-      // Show a success message
-      toast.success('Class settings saved successfully!');
+      if (error) throw error;
 
-      // Refresh classes
+      toast.success(`Class ${isEditing ? 'updated' : 'created'} successfully!`);
       await refreshClasses();
-
-      // Redirect to the classes list page
       navigate('/admin/classes');
     } catch (error) {
       console.error('Error saving class settings:', error);
-      toast.error('Failed to save class settings. Please try again.');
+      toast.error(`Failed to ${isEditing ? 'update' : 'create'} class. Please try again.`);
     }
   };
 
-  // Add the missing code for the form's allowedStates field
   const validationObj = form.watch("validationRules") || {};
   const allowedStates = Array.isArray(validationObj.allowedStates) ? validationObj.allowedStates.join(", ") : "";
 
@@ -108,7 +128,7 @@ const ClassSettingsPage: React.FC = () => {
         </Button>
 
         <h1 className="text-3xl font-bold text-islamic-primary mb-6">
-          Create New Class
+          {isEditing ? 'Edit Class' : 'Create New Class'}
         </h1>
 
         <Form {...form}>
@@ -218,7 +238,6 @@ const ClassSettingsPage: React.FC = () => {
               )}
             />
 
-            {/* In the form fields section, update the allowedStates field */}
             <FormField
               control={form.control}
               name="validationRules.allowedStates"

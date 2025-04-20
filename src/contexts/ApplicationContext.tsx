@@ -101,7 +101,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
           code: cls.code,
           name: cls.name,
           description: cls.description || '',
-          validationRules: transformValidationRules(cls.validation_rules),
+          validationRules: cls.validation_rules ? transformValidationRules(cls.validation_rules) : undefined,
           template: cls.template || '',
           created_at: cls.created_at,
           updated_at: cls.updated_at
@@ -300,7 +300,32 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const refreshClasses = async () => {
-    await fetchClasses();
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*');
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        const transformedClasses = data.map(cls => ({
+          id: cls.id,
+          code: cls.code,
+          name: cls.name,
+          description: cls.description || '',
+          validationRules: cls.validation_rules ? transformValidationRules(cls.validation_rules) : undefined,
+          template: cls.template || '',
+          created_at: cls.created_at,
+          updated_at: cls.updated_at
+        }));
+        setClasses(transformedClasses as Class[]);
+      }
+    } catch (err) {
+      console.error('Error fetching classes:', err);
+      setError('Failed to fetch classes');
+    }
   };
 
   useEffect(() => {
