@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -57,7 +56,6 @@ export function ApplicationFormDialog() {
 
   const parseApplicationText = (text: string) => {
     try {
-      // Split the text into sections
       const sections = text.split('\n\n');
       const parsedData: any = {
         studentDetails: {},
@@ -67,7 +65,6 @@ export function ApplicationFormDialog() {
         referredBy: {},
       };
 
-      // Get class code from the first line
       parsedData.classCode = sections[0].trim();
 
       sections.forEach(section => {
@@ -92,11 +89,9 @@ export function ApplicationFormDialog() {
               }
             });
             break;
-          // ... similar parsing for other sections
         }
       });
 
-      // Validate the parsed data
       const validationResult = applicationSchema.safeParse(parsedData);
       
       if (!validationResult.success) {
@@ -205,6 +200,5 @@ export function ApplicationFormDialog() {
         </div>
       </DialogContent>
     </Dialog>
-  </div>
-);
+  );
 }
