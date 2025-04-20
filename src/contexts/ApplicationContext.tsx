@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Class, ClassRecord, Application, StudentApplication } from '@/types/supabase-types';
+import { Class, ClassRecord, Application as AppApplication, StudentApplication } from '@/types/supabase-types';
 import { useAuth } from './AuthContext';
 import { Json } from '@/integrations/supabase/types';
 
