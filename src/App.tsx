@@ -43,8 +43,8 @@ const App = () => (
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/check-status" element={<StatusCheckPage />} />
                 
+                {/* Modified application routes - only accessible via admin/moderator */}
                 <Route path="/applications" element={<ApplicationsListPage />} />
-                <Route path="/applications/new" element={<NewApplicationPage />} />
                 <Route path="/applications/:id" element={<ApplicationDetailPage />} />
                 
                 <Route path="/admin" element={<AdminDashboard />} />
@@ -52,10 +52,7 @@ const App = () => (
                 <Route path="/admin/classes" element={<ClassesPage />} />
                 <Route path="/admin/classes/new" element={<ClassSettingsPage />} />
                 <Route path="/admin/classes/edit/:classCode" element={<ClassSettingsPage />} />
-                
                 <Route path="/admin/reports" element={<ReportsPage />} />
-                
-                <Route path="/application" element={<ApplicationPage />} />
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>

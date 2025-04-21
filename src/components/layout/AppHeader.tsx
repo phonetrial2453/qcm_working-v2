@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,7 +20,6 @@ const AppHeader: React.FC = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
-  // Handle logout with event parameter
   const handleLogout = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     logout();
@@ -39,7 +37,6 @@ const AppHeader: React.FC = () => {
           </Link>
         </div>
 
-        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-4">
           {isAuthenticated && (
             <>
@@ -51,9 +48,6 @@ const AppHeader: React.FC = () => {
                   Admin Panel
                 </Link>
               )}
-              <Link to="/applications" className="text-white hover:text-islamic-accent transition-colors">
-                Applications
-              </Link>
               <Link to="/check-status" className="text-white hover:text-islamic-accent transition-colors">
                 Check Status
               </Link>
@@ -95,7 +89,6 @@ const AppHeader: React.FC = () => {
           )}
         </nav>
 
-        {/* Mobile Menu Button */}
         <button
           className="md:hidden text-white p-2"
           onClick={toggleMobileMenu}
@@ -109,7 +102,6 @@ const AppHeader: React.FC = () => {
         </button>
       </div>
 
-      {/* Mobile Navigation */}
       {mobileMenuOpen && (
         <div className="md:hidden py-4 bg-islamic-primary border-t border-islamic-accent/20">
           <div className="container space-y-2">
@@ -137,13 +129,6 @@ const AppHeader: React.FC = () => {
                       Admin Panel
                     </Link>
                   )}
-                  <Link 
-                    to="/applications" 
-                    className="block px-3 py-2 text-white hover:bg-islamic-accent/20"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Applications
-                  </Link>
                   <Link 
                     to="/check-status" 
                     className="block px-3 py-2 text-white hover:bg-islamic-accent/20"
