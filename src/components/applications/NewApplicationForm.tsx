@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApplications } from '@/contexts/ApplicationContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,17 +10,9 @@ import { parseApplicationText } from '@/utils/applicationValidation';
 import ValidationWarnings from './ValidationWarnings';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { v4 as uuidv4 } from 'uuid';
 import PreviewFields from './PreviewFields';
 import { supabase } from '@/integrations/supabase/client';
-
-interface ValidationResult {
-  valid: boolean;
-  warnings: {
-    field: string;
-    message: string;
-  }[];
-}
+import { generateSimpleApplicationId } from '@/utils/applicationIdGenerator';
 
 const NewApplicationForm: React.FC = () => {
   const { classes, createApplication } = useApplications();
@@ -178,7 +171,14 @@ const NewApplicationForm: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const applicationId = uuidv4();
+      // Get current count of applications for this class to generate the next ID
+      const { count } = await supabase
+        .from('applications')
+        .select('id', { count: 'exact', head: true })
+        .eq('class_code', selectedClassCode);
+      
+      const currentCount = count || 0;
+      const applicationId = generateSimpleApplicationId(selectedClassCode, currentCount);
       
       const applicationData = {
         id: applicationId,
@@ -195,7 +195,7 @@ const NewApplicationForm: React.FC = () => {
       const result = await createApplication(applicationData);
       
       if (result) {
-        toast.success('Application submitted successfully');
+        toast.success(`Application submitted successfully. ID: ${applicationId}`);
         navigate('/applications');
       } else {
         toast.error('Failed to submit application');
