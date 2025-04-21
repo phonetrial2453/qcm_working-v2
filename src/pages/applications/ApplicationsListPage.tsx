@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useApplications } from '@/contexts/ApplicationContext';
@@ -7,7 +6,13 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   DropdownMenu, 
@@ -19,9 +24,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { PlusCircle, Search, MoreHorizontal, Download, Filter, Eye } from 'lucide-react';
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from "@/components/ui/dialog";
 
 const ApplicationsListPage: React.FC = () => {
-  const { applications, classes } = useApplications();
+  const { applications, classes, updateApplication, fetchApplications } = useApplications();
   const { user, isAdmin } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -31,6 +43,11 @@ const ApplicationsListPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [classFilter, setClassFilter] = useState('all');
   
+  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [newStatus, setNewStatus] = useState<string>('');
+
   // Get class code from URL if provided
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -106,6 +123,35 @@ const ApplicationsListPage: React.FC = () => {
       default:
         return <Badge variant="outline" className="border-amber-500 text-amber-500">Pending</Badge>;
     }
+  };
+
+  const handleStatusUpdate = async () => {
+    if (!selectedApplicationId || !newStatus) return;
+    
+    setUpdatingStatus(true);
+    try {
+      const result = await updateApplication(selectedApplicationId, {
+        status: newStatus
+      });
+      
+      if (result) {
+        toast.success('Application status updated successfully');
+        await fetchApplications();
+        setIsStatusDialogOpen(false);
+      } else {
+        toast.error('Failed to update application status');
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('An error occurred while updating the status');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const openStatusDialog = (applicationId: string) => {
+    setSelectedApplicationId(applicationId);
+    setIsStatusDialogOpen(true);
   };
 
   return (
@@ -225,12 +271,10 @@ const ApplicationsListPage: React.FC = () => {
                                 View Details
                               </DropdownMenuItem>
                               {isAdmin && (
-                                <>
-                                  <DropdownMenuItem>
-                                    <Filter className="h-4 w-4 mr-2" />
-                                    Change Status
-                                  </DropdownMenuItem>
-                                </>
+                                <DropdownMenuItem onClick={() => openStatusDialog(application.id)}>
+                                  <Filter className="h-4 w-4 mr-2" />
+                                  Change Status
+                                </DropdownMenuItem>
                               )}
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -250,6 +294,41 @@ const ApplicationsListPage: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Add the Status Update Dialog */}
+      <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Application Status</DialogTitle>
+            <DialogDescription>
+              Change the status of the selected application
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Select value={newStatus} onValueChange={setNewStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select new status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsStatusDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleStatusUpdate} 
+                disabled={!newStatus || updatingStatus}
+              >
+                {updatingStatus ? 'Updating...' : 'Update Status'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
