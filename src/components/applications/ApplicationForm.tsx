@@ -2,7 +2,7 @@
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Clipboard } from 'lucide-react';
-import { ValidationWarnings } from './ValidationWarnings';
+import ValidationWarnings from './ValidationWarnings';
 import { ValidationError } from '@/utils/applicationValidation';
 
 interface ApplicationFormProps {
@@ -42,7 +42,7 @@ export const ApplicationForm = ({
         className="min-h-[300px] font-mono"
       />
 
-      <ValidationWarnings errors={validationErrors} />
+      <ValidationWarnings warnings={validationErrors} />
 
       <div className="flex justify-end space-x-2">
         <Button variant="outline" onClick={onCancel}>
