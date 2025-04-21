@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApplications } from '@/contexts/ApplicationContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,7 +31,6 @@ const NewApplicationForm: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const navigate = useNavigate();
 
-  // When class changes, update the template
   useEffect(() => {
     if (selectedClassCode) {
       const selectedClass = classes.find(c => c.code === selectedClassCode);
@@ -44,7 +42,6 @@ const NewApplicationForm: React.FC = () => {
     }
   }, [selectedClassCode, classes]);
 
-  // Parse the application text when it changes
   useEffect(() => {
     if (applicationText.trim()) {
       const parsed = parseApplicationText(applicationText);
@@ -62,7 +59,6 @@ const NewApplicationForm: React.FC = () => {
   const validateApplication = async (data: any) => {
     const warnings: { field: string; message: string }[] = [];
     
-    // Check for missing required fields
     const requiredFields = [
       { path: 'studentDetails.fullName', label: 'Student Name' },
       { path: 'studentDetails.mobile', label: 'Mobile Number' },
@@ -76,12 +72,10 @@ const NewApplicationForm: React.FC = () => {
       }
     });
     
-    // If a class is selected, validate against class requirements
     if (selectedClassCode) {
       const selectedClass = classes.find(c => c.code === selectedClassCode);
       
       if (selectedClass?.validationRules) {
-        // Validate age if age range is specified
         if (selectedClass.validationRules.ageRange && data.otherDetails?.age) {
           const age = parseInt(data.otherDetails.age);
           const minAge = selectedClass.validationRules.ageRange.min;
@@ -102,7 +96,6 @@ const NewApplicationForm: React.FC = () => {
           }
         }
         
-        // Validate state if allowed states are specified
         if (selectedClass.validationRules.allowedStates && 
             selectedClass.validationRules.allowedStates.length > 0 && 
             data.currentResidence?.state) {
@@ -117,12 +110,10 @@ const NewApplicationForm: React.FC = () => {
           }
         }
         
-        // Validate qualification if minimum qualification is specified
         if (selectedClass.validationRules.minimumQualification && data.otherDetails?.qualification) {
           const qualification = data.otherDetails.qualification.toLowerCase();
           const minQualification = selectedClass.validationRules.minimumQualification.toLowerCase();
           
-          // This is a simplified check - a real implementation might use a more sophisticated approach
           if (!qualification.includes(minQualification)) {
             warnings.push({ 
               field: 'Qualification', 
@@ -132,7 +123,6 @@ const NewApplicationForm: React.FC = () => {
         }
       }
       
-      // Check for duplicate applications
       if (data.studentDetails?.fullName && data.studentDetails?.mobile) {
         try {
           const { data: existingApps, error } = await supabase
@@ -190,7 +180,6 @@ const NewApplicationForm: React.FC = () => {
     try {
       const applicationId = uuidv4();
       
-      // Prepare application data
       const applicationData = {
         id: applicationId,
         classCode: selectedClassCode,
