@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useApplications } from '@/contexts/ApplicationContext';
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { PlusCircle, Search, MoreHorizontal, Download, Filter, Eye } from 'lucide-react';
+import { toast } from 'sonner';
 import { 
   Dialog,
   DialogContent,
