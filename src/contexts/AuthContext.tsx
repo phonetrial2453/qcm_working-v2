@@ -200,15 +200,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signOut = async (redirectTo?: string) => {
+  const signOut = async (redirectTo: string = '/') => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       toast.success('Successfully signed out');
       
-      if (redirectTo) {
-        window.location.href = redirectTo;
-      }
+      // Always redirect to home page after signout
+      window.location.href = redirectTo;
     } catch (error: any) {
       toast.error(error.message || 'Error signing out');
       throw error;

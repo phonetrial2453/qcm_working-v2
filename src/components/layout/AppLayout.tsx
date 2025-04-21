@@ -1,6 +1,6 @@
 
 import React, { ReactNode, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import AppHeader from './AppHeader';
 import AppFooter from './AppFooter';
@@ -9,27 +9,43 @@ interface AppLayoutProps {
   children: ReactNode;
   requireAuth?: boolean;
   adminOnly?: boolean;
+  moderatorOrAdmin?: boolean;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({ 
   children, 
-  requireAuth = false,
-  adminOnly = false
+  requireAuth = true, // Default changed to true for all routes
+  adminOnly = false,
+  moderatorOrAdmin = false
 }) => {
   const { isAuthenticated, isAdmin, user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isModerator = user?.role === 'moderator';
 
   useEffect(() => {
     if (loading) return;
 
+    // Skip auth check for home page
+    if (location.pathname === '/' && requireAuth) {
+      return;
+    }
+
     if (requireAuth && !isAuthenticated) {
-      navigate('/login');
+      navigate('/');
+      return;
     }
 
     if (adminOnly && !isAdmin) {
       navigate('/dashboard');
+      return;
     }
-  }, [isAuthenticated, isAdmin, requireAuth, adminOnly, navigate, loading]);
+
+    if (moderatorOrAdmin && !isAdmin && !isModerator) {
+      navigate('/dashboard');
+      return;
+    }
+  }, [isAuthenticated, isAdmin, isModerator, requireAuth, adminOnly, moderatorOrAdmin, navigate, loading, location.pathname]);
 
   // If loading and auth is required, show loading state
   if (loading && requireAuth) {
@@ -45,8 +61,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({
     return null;
   }
 
+  // If moderator/admin only and user is neither, don't render (will redirect)
+  if (moderatorOrAdmin && !isAdmin && !isModerator) {
+    return null;
+  }
+
   // If auth required and not authenticated, don't render anything (will redirect)
-  if (requireAuth && !isAuthenticated) {
+  if (requireAuth && !isAuthenticated && location.pathname !== '/') {
     return null;
   }
 

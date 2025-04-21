@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -46,6 +47,7 @@ const App = () => (
                 {/* Modified application routes - only accessible via admin/moderator */}
                 <Route path="/applications" element={<ApplicationsListPage />} />
                 <Route path="/applications/:id" element={<ApplicationDetailPage />} />
+                <Route path="/applications/new" element={<NewApplicationPage />} />
                 
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/moderators" element={<ModeratorManagementPage />} />

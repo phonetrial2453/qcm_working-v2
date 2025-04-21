@@ -1,14 +1,14 @@
 
 import React from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { ApplicationFormDialog } from './ApplicationFormDialog';
+import NewApplicationForm from '@/components/applications/NewApplicationForm';
 
 const NewApplicationPage: React.FC = () => {
   return (
-    <AppLayout>
+    <AppLayout requireAuth={true} moderatorOrAdmin={true}>
       <div className="container mx-auto py-8">
-        <h1 className="text-2xl font-bold mb-4">Applications</h1>
-        <ApplicationFormDialog />
+        <h1 className="text-2xl font-bold mb-6">New Application</h1>
+        <NewApplicationForm />
       </div>
     </AppLayout>
   );

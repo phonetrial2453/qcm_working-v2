@@ -42,7 +42,7 @@ export type ValidationError = {
 
 export const parseApplicationText = (text: string) => {
   try {
-    const sections = text.split('\n\n');
+    // Initialize data structure
     const parsedData: any = {
       studentDetails: {},
       otherDetails: {},
@@ -51,45 +51,72 @@ export const parseApplicationText = (text: string) => {
       referredBy: {},
     };
 
-    parsedData.classCode = sections[0].trim();
+    // Split the text into sections
+    const normalizedText = text.replace(/={3,}/g, '===');
+    const sections = normalizedText.split('===').filter(Boolean);
+    
+    // Process each section
+    let currentSection: string | null = null;
+    
+    // If the first section doesn't have a header, assume it's the class code
+    if (sections.length > 0 && !sections[0].includes(':')) {
+      parsedData.classCode = sections[0].trim();
+    }
 
-    const processLines = (targetObj: any, lines: string[]) => {
-      lines.slice(1).forEach(line => {
-        const [key, value] = line.split(':').map(s => s.trim());
-        if (key && value) {
-          const formattedKey = key.toLowerCase().replace(/\s+/g, '');
-          if (formattedKey === 'age') {
-            targetObj[formattedKey] = parseInt(value, 10);
+    // Process remaining text line by line
+    let lines = text.split('\n');
+    
+    for (let line of lines) {
+      line = line.trim();
+      
+      // Skip empty lines or dividers
+      if (!line || line.match(/^-+$/) || line.match(/^=+$/)) continue;
+      
+      // Check for section headers
+      if (line.toUpperCase().includes('STUDENT DETAILS')) {
+        currentSection = 'studentDetails';
+        continue;
+      } else if (line.toUpperCase().includes('OTHER DETAILS')) {
+        currentSection = 'otherDetails';
+        continue;
+      } else if (line.toUpperCase().includes('HOMETOWN DETAILS')) {
+        currentSection = 'hometownDetails';
+        continue;
+      } else if (line.toUpperCase().includes('CURRENT RESIDENCE')) {
+        currentSection = 'currentResidence';
+        continue;
+      } else if (line.toUpperCase().includes('REFERRED BY')) {
+        currentSection = 'referredBy';
+        continue;
+      }
+      
+      // Process the line if we're in a section
+      if (currentSection) {
+        const colonIndex = line.indexOf(':');
+        if (colonIndex > 0) {
+          let key = line.substring(0, colonIndex).trim()
+            .replace(/[^a-zA-Z0-9]/g, '') // Remove special characters
+            .replace(/\s+/g, '') // Remove spaces
+            .replace(/^\w/, c => c.toLowerCase()); // Make first letter lowercase
+            
+          let value = line.substring(colonIndex + 1).trim();
+          
+          // Special case for age - convert to number
+          if ((key === 'age' || key.toLowerCase().includes('age')) && !isNaN(parseInt(value))) {
+            parsedData[currentSection][key] = parseInt(value);
           } else {
-            targetObj[formattedKey] = value;
+            parsedData[currentSection][key] = value;
           }
         }
-      });
-    };
-
-    sections.forEach(section => {
-      const lines = section.split('\n');
-      const sectionTitle = lines[0].trim().toUpperCase();
-
-      switch(sectionTitle) {
-        case 'STUDENT DETAILS':
-          processLines(parsedData.studentDetails, lines);
-          break;
-        case 'OTHER DETAILS':
-          processLines(parsedData.otherDetails, lines);
-          break;
-        case 'CURRENT RESIDENCE':
-          processLines(parsedData.currentResidence, lines);
-          break;
-        case 'HOMETOWN DETAILS':
-          processLines(parsedData.hometownDetails, lines);
-          break;
-        case 'REFERRED BY':
-          processLines(parsedData.referredBy, lines);
-          break;
       }
-    });
-
+    }
+    
+    // Special handling for fullName
+    if (parsedData.studentDetails.name && !parsedData.studentDetails.fullName) {
+      parsedData.studentDetails.fullName = parsedData.studentDetails.name;
+      delete parsedData.studentDetails.name;
+    }
+    
     return parsedData;
   } catch (error) {
     console.error('Error parsing application text:', error);
