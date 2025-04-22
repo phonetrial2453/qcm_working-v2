@@ -12,3 +12,11 @@ export interface Application {
     email?: string;
   };
 }
+
+export interface ValidationResult {
+  valid: boolean;
+  warnings: {
+    field: string;
+    message: string;
+  }[];
+}

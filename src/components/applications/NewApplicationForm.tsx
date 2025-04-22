@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApplications } from '@/contexts/ApplicationContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +12,7 @@ import { toast } from 'sonner';
 import PreviewFields from './PreviewFields';
 import { supabase } from '@/integrations/supabase/client';
 import { generateSimpleApplicationId } from '@/utils/applicationIdGenerator';
+import { ValidationResult } from '@/types/application';
 
 const NewApplicationForm: React.FC = () => {
   const { classes, createApplication } = useApplications();
@@ -171,7 +171,6 @@ const NewApplicationForm: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      // Get current count of applications for this class to generate the next ID
       const { count } = await supabase
         .from('applications')
         .select('id', { count: 'exact', head: true })
