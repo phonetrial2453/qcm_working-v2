@@ -4,8 +4,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, LogIn, UserPlus } from 'lucide-react';
+import { LogIn, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import PublicClassesList from '@/components/home/PublicClassesList';
 
@@ -87,45 +86,6 @@ const HomePage: React.FC = () => {
               </>
             )}
           </div>
-        </div>
-        
-        {/* Features Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <Card>
-            <CardHeader>
-              <CardTitle>Streamlined Applications</CardTitle>
-              <CardDescription>Easy application submission and tracking</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Submit applications with a simple form process. The system validates data in real-time to ensure accuracy.
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Effortless Management</CardTitle>
-              <CardDescription>Efficient dashboard for administrators</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Administrators can easily review applications, track status changes, and generate reports.
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Application Management</CardTitle>
-              <CardDescription>Comprehensive tools for moderators and administrators</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Moderators and administrators can check application status, process submissions, and manage the entire workflow.
-              </p>
-            </CardContent>
-          </Card>
         </div>
         
         {/* Public Classes List Section */}

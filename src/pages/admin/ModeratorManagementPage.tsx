@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import AppLayout from '@/components/layout/AppLayout';
@@ -13,6 +14,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useApplications } from '@/contexts/ApplicationContext';
 import { supabase } from '@/integrations/supabase/client';
 import { UserPlus, Trash2, Edit2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface User {
   id: string;
@@ -53,6 +64,9 @@ const ModeratorManagementPage: React.FC = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
   const [isUserAdmin, setIsUserAdmin] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const { register, handleSubmit, reset, formState: { errors } } = useForm<AddModeratorForm>();
 
@@ -92,19 +106,28 @@ const ModeratorManagementPage: React.FC = () => {
 
   const onAddModerator = async (data: AddModeratorForm) => {
     try {
-      const { data: userData, error: signupError } = await supabase.auth.admin.createUser({
+      // Create user
+      const { data: userData, error: signupError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
-        email_confirm: true,
-        user_metadata: { name: data.name }
+        options: {
+          data: { name: data.name }
+        }
       });
       
       if (signupError) throw signupError;
       
+      if (!userData.user?.id) {
+        throw new Error("User creation failed - no user ID returned");
+      }
+      
+      const userId = userData.user.id;
+      
+      // Add role - admin or moderator
       const role = data.isAdmin ? 'admin' : 'moderator';
       const { error: roleError } = await supabase
         .from('user_roles')
-        .insert({ user_id: userData.user.id, role });
+        .insert({ user_id: userId, role });
       
       if (roleError) throw roleError;
       
@@ -176,6 +199,56 @@ const ModeratorManagementPage: React.FC = () => {
       .filter(mc => mc.user_id === user.id)
       .map(mc => mc.class_code);
     setSelectedClasses(userClasses);
+  };
+
+  const confirmDeleteUser = (user: User) => {
+    setUserToDelete(user);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      // First delete user roles
+      const { error: rolesError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userToDelete.id);
+      
+      if (rolesError) throw rolesError;
+      
+      // Then delete moderator classes assignments
+      const { error: classesError } = await supabase
+        .from('moderator_classes')
+        .delete()
+        .eq('user_id', userToDelete.id);
+      
+      if (classesError) throw classesError;
+      
+      // Finally delete the user from auth
+      const { error: userError } = await supabase.auth.admin.deleteUser(
+        userToDelete.id
+      );
+      
+      if (userError) throw userError;
+      
+      toast.success('User deleted successfully');
+      await fetchData();
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast.error(`Failed to delete user: ${error.message}`);
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+      setUserToDelete(null);
+    }
+  };
+
+  const cancelDeleteUser = () => {
+    setIsDeleteDialogOpen(false);
+    setUserToDelete(null);
   };
 
   const toggleClassSelection = (classCode: string) => {
@@ -342,6 +415,27 @@ const ModeratorManagementPage: React.FC = () => {
               )}
             </DialogContent>
           </Dialog>
+          
+          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to delete this user?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the user and remove all of their data.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={cancelDeleteUser} disabled={isDeleting}>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDeleteUser} 
+                  disabled={isDeleting}
+                  className="bg-red-500 hover:bg-red-600"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
         
         <Card>
@@ -398,13 +492,23 @@ const ModeratorManagementPage: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-4 py-2 text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditClick(user)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditClick(user)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => confirmDeleteUser(user)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}

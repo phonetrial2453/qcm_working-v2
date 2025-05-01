@@ -4,7 +4,7 @@ import { useQuran } from '@/contexts/QuranContext';
 
 const AppFooter: React.FC = () => {
   const { getRandomAyah } = useQuran();
-  const [ayah, setAyah] = useState({ text: '', reference: '' });
+  const [ayah, setAyah] = useState({ text: '', reference: '', originalArabic: '' });
   const [animationClass, setAnimationClass] = useState('');
 
   useEffect(() => {
@@ -24,7 +24,12 @@ const AppFooter: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto text-center">
           <div className={`p-4 rounded-lg bg-islamic-primary/80 transition-all duration-1000 transform ${animationClass}`}>
-            <p className="text-xl font-arabic leading-relaxed transition-all hover:scale-105 duration-500">
+            {ayah.originalArabic && (
+              <p className="text-xl font-arabic leading-relaxed mb-3 transition-all hover:scale-105 duration-500" dir="rtl">
+                {ayah.originalArabic}
+              </p>
+            )}
+            <p className="text-xl font-serif leading-relaxed transition-all hover:scale-105 duration-500">
               {ayah.text}
             </p>
             <p className="text-sm text-islamic-accent mt-2">

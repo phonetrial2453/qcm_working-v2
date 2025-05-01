@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -175,13 +174,13 @@ const ClassSettingsPage: React.FC = () => {
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="e.g., An introductory class to Quranic studies."
-                      className="resize-none"
+                      placeholder="e.g., An introductory class to Quranic studies. Use multiple lines for better formatting."
+                      className="resize-y min-h-[100px]"
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    A brief description of the class.
+                    A detailed description of the class. You can use multiple lines to better format the content.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
