@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import AppLayout from '@/components/layout/AppLayout';
@@ -44,7 +43,7 @@ const ReportsPage: React.FC = () => {
       
       // Count applications by month
       filteredApps.forEach(app => {
-        const date = new Date(app.created_at);
+        const date = new Date(app.createdAt); // Fixed: using camelCase property name
         const month = months[date.getMonth()];
         monthCounts[month]++;
       });

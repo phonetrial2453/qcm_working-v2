@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useApplications } from '@/contexts/ApplicationContext';
@@ -92,7 +91,7 @@ const ApplicationsListPage: React.FC = () => {
       app.studentDetails?.mobile || '',
       app.classCode,
       app.status,
-      formatDate(app.created_at)
+      formatDate(app.createdAt) // Fixed: using camelCase property name
     ]);
     
     // Create CSV content
