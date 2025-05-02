@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -78,7 +79,7 @@ const ClassSettingsPage: React.FC = () => {
         });
       }
     }
-  }, [isEditing, classCode, classes]);
+  }, [isEditing, classCode, classes, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -100,14 +101,14 @@ const ClassSettingsPage: React.FC = () => {
             validation_rules: values.validationRules,
             template: values.template,
           },
-        ]);
+        ], { onConflict: 'code' }); // Fix: Added onConflict option
 
       if (error) throw error;
 
       toast.success(`Class ${isEditing ? 'updated' : 'created'} successfully!`);
       await refreshClasses();
       navigate('/admin/classes');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving class settings:', error);
       toast.error(`Failed to ${isEditing ? 'update' : 'create'} class. Please try again.`);
     }

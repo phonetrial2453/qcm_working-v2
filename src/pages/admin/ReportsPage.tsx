@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/sonner';
 import { useApplications } from '@/contexts/ApplicationContext';
-import { BarChart, PieChart, BarChart3, PieChart as PieChartIcon, Download, FileText, Filter } from 'lucide-react';
+import { BarChart, PieChart, BarChart3, PieChart as PieChartIcon, Download, FileImage } from 'lucide-react';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
 const ReportsPage: React.FC = () => {
@@ -16,14 +16,60 @@ const ReportsPage: React.FC = () => {
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [selectedDateRange, setSelectedDateRange] = useState<string>('month');
   const [selectedTab, setSelectedTab] = useState<string>('overview');
+  const chartRefs = {
+    overview: useRef<HTMLDivElement>(null),
+    byClass: useRef<HTMLDivElement>(null),
+    trends: useRef<HTMLDivElement>(null),
+  };
+  
+  // Monthly applications data - now using real data
+  const [monthlyData, setMonthlyData] = useState<any[]>([]);
+  
+  // Calculate monthly data from applications
+  useEffect(() => {
+    const getMonthlyData = () => {
+      // Create an object to hold counts for each month
+      const monthCounts: Record<string, number> = {};
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      
+      // Initialize all months with 0
+      months.forEach(month => {
+        monthCounts[month] = 0;
+      });
+      
+      // Filter applications by selected class if needed
+      const filteredApps = selectedClass === 'all'
+        ? applications
+        : applications.filter(app => app.classCode === selectedClass);
+      
+      // Count applications by month
+      filteredApps.forEach(app => {
+        const date = new Date(app.created_at);
+        const month = months[date.getMonth()];
+        monthCounts[month]++;
+      });
+      
+      // Convert to array format for Recharts
+      const data = months.map(month => ({
+        name: month,
+        applications: monthCounts[month],
+      }));
+      
+      setMonthlyData(data);
+    };
+    
+    getMonthlyData();
+  }, [applications, selectedClass]);
   
   // Will be replaced with actual Supabase data
   useEffect(() => {
     const fetchReportData = async () => {
       try {
         // This would be replaced with actual Supabase queries
-        // const { data, error } = await supabase.from('applications').select('*');
-        console.log('Would fetch report data from Supabase here');
+        console.log('Fetching report data with filters:', {
+          class: selectedClass, 
+          dateRange: selectedDateRange
+        });
       } catch (error) {
         console.error('Error fetching report data:', error);
         toast.error('Failed to load report data');
@@ -33,12 +79,11 @@ const ReportsPage: React.FC = () => {
     fetchReportData();
   }, [selectedClass, selectedDateRange]);
   
-  // Generate some mock data for the reports
+  // Status distribution data for pie chart
   const filteredApplications = selectedClass === 'all' 
     ? applications 
     : applications.filter(app => app.classCode === selectedClass);
   
-  // Status distribution data for pie chart
   const statusData = [
     { name: 'Approved', value: filteredApplications.filter(app => app.status === 'approved').length, color: '#10b981' },
     { name: 'Pending', value: filteredApplications.filter(app => app.status === 'pending').length, color: '#f59e0b' },
@@ -54,22 +99,6 @@ const ReportsPage: React.FC = () => {
     Rejected: applications.filter(app => app.classCode === cls.code && app.status === 'rejected').length,
   }));
   
-  // Monthly applications data for line chart (mock data)
-  const monthlyData = [
-    { name: 'Jan', applications: 15 },
-    { name: 'Feb', applications: 22 },
-    { name: 'Mar', applications: 18 },
-    { name: 'Apr', applications: 25 },
-    { name: 'May', applications: 30 },
-    { name: 'Jun', applications: 28 },
-    { name: 'Jul', applications: 32 },
-    { name: 'Aug', applications: 35 },
-    { name: 'Sep', applications: 27 },
-    { name: 'Oct', applications: 24 },
-    { name: 'Nov', applications: 20 },
-    { name: 'Dec', applications: 16 },
-  ];
-  
   // Get stats for overview cards
   const totalApplications = filteredApplications.length;
   const approvedApplications = filteredApplications.filter(app => app.status === 'approved').length;
@@ -81,8 +110,34 @@ const ReportsPage: React.FC = () => {
     : 0;
     
   const handleExportReport = () => {
-    // In a real app, this would generate a CSV or PDF report
-    toast.success('Report exported successfully');
+    const activeTab = selectedTab;
+    const chartRef = chartRefs[activeTab as keyof typeof chartRefs];
+    
+    if (!chartRef.current) {
+      toast.error('Chart not found for export');
+      return;
+    }
+    
+    try {
+      // Use html2canvas to capture the chart (would need to be imported)
+      import('html2canvas').then((html2canvas) => {
+        html2canvas.default(chartRef.current!).then(canvas => {
+          // Convert to downloadable image
+          const imgData = canvas.toDataURL('image/png');
+          const link = document.createElement('a');
+          link.download = `${activeTab}-report-${new Date().toISOString().slice(0, 10)}.png`;
+          link.href = imgData;
+          link.click();
+          toast.success('Report exported successfully');
+        });
+      }).catch(err => {
+        console.error('Error loading html2canvas:', err);
+        toast.error('Failed to export report');
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export report');
+    }
   };
   
   return (
@@ -100,7 +155,7 @@ const ReportsPage: React.FC = () => {
             variant="outline"
             onClick={handleExportReport}
           >
-            <Download className="mr-2 h-4 w-4" />
+            <FileImage className="mr-2 h-4 w-4" />
             Export Report
           </Button>
         </div>
@@ -206,7 +261,7 @@ const ReportsPage: React.FC = () => {
           </TabsList>
           
           <TabsContent value="overview" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6" ref={chartRefs.overview}>
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useApplications } from '@/contexts/ApplicationContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,11 +9,14 @@ import { ApplicationsHeader } from '@/components/applications/ApplicationsHeader
 import { ApplicationsFilter } from '@/components/applications/ApplicationsFilter';
 import { ApplicationsTable } from '@/components/applications/ApplicationsTable';
 import { StatusUpdateDialog } from '@/components/applications/StatusUpdateDialog';
+import { FileImage } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const ApplicationsListPage: React.FC = () => {
   const { applications, classes, updateApplication, fetchApplications } = useApplications();
   const { user, isAdmin } = useAuth();
   const location = useLocation();
+  const tableRef = useRef<HTMLDivElement>(null);
   
   const [filteredApplications, setFilteredApplications] = useState(applications);
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,6 +41,7 @@ const ApplicationsListPage: React.FC = () => {
   useEffect(() => {
     let filtered = [...applications];
     
+    // Important: First filter by user's assigned classes
     if (!isAdmin && user?.classes) {
       filtered = filtered.filter(app => user.classes?.includes(app.classCode));
     }
@@ -77,8 +81,64 @@ const ApplicationsListPage: React.FC = () => {
   };
   
   const exportToCSV = () => {
-    console.log('Exporting to CSV:', filteredApplications);
-    alert('CSV export feature would be implemented here');
+    const headers = [
+      'ID', 'Name', 'Email', 'Mobile', 'Class', 'Status', 'Date'
+    ];
+    
+    const rows = filteredApplications.map(app => [
+      app.id,
+      app.studentDetails?.fullName || '',
+      app.otherDetails?.email || '',
+      app.studentDetails?.mobile || '',
+      app.classCode,
+      app.status,
+      formatDate(app.created_at)
+    ]);
+    
+    // Create CSV content
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+    
+    // Create download link
+    const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `applications-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('CSV report exported successfully');
+  };
+
+  const exportToImage = () => {
+    if (!tableRef.current) {
+      toast.error('Table not found for export');
+      return;
+    }
+    
+    try {
+      // Use html2canvas to capture the table
+      import('html2canvas').then((html2canvas) => {
+        html2canvas.default(tableRef.current!).then(canvas => {
+          // Convert to downloadable image
+          const imgData = canvas.toDataURL('image/png');
+          const link = document.createElement('a');
+          link.download = `applications-${new Date().toISOString().slice(0, 10)}.png`;
+          link.href = imgData;
+          link.click();
+          toast.success('Applications report exported as image');
+        });
+      }).catch(err => {
+        console.error('Error loading html2canvas:', err);
+        toast.error('Failed to export report as image');
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export report');
+    }
   };
 
   const handleStatusUpdate = async () => {
@@ -118,6 +178,13 @@ const ApplicationsListPage: React.FC = () => {
           onExport={exportToCSV}
         />
         
+        <div className="flex justify-end mb-4">
+          <Button variant="outline" onClick={exportToImage} className="ml-2">
+            <FileImage className="h-4 w-4 mr-2" />
+            Export as Image
+          </Button>
+        </div>
+        
         <ApplicationsFilter
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
@@ -128,12 +195,14 @@ const ApplicationsListPage: React.FC = () => {
           accessibleClasses={accessibleClasses}
         />
         
-        <ApplicationsTable
-          applications={filteredApplications}
-          isAdmin={isAdmin}
-          onChangeStatus={openStatusDialog}
-          formatDate={formatDate}
-        />
+        <div ref={tableRef}>
+          <ApplicationsTable
+            applications={filteredApplications}
+            isAdmin={isAdmin}
+            onChangeStatus={openStatusDialog}
+            formatDate={formatDate}
+          />
+        </div>
 
         <StatusUpdateDialog
           isOpen={isStatusDialogOpen}
