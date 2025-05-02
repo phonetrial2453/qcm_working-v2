@@ -22,6 +22,7 @@ const ModeratorManagementPage: React.FC = () => {
     openDialog,
     setOpenDialog,
     editingUser,
+    setEditingUser,
     selectedClasses,
     isUserAdmin,
     setIsUserAdmin,
