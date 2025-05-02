@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApplications } from '@/contexts/ApplicationContext';
@@ -36,8 +36,16 @@ const ModeratorManagementPage: React.FC = () => {
     confirmDeleteUser,
     handleDeleteUser,
     cancelDeleteUser,
-    toggleClassSelection
+    toggleClassSelection,
+    updateSelectedClasses
   } = useModeratorManagement();
+
+  // Reset selected classes when editing user changes
+  useEffect(() => {
+    if (!editingUser) {
+      updateSelectedClasses([]);
+    }
+  }, [editingUser, updateSelectedClasses]);
 
   return (
     <AppLayout adminOnly>

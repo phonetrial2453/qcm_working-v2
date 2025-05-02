@@ -28,12 +28,15 @@ export const useModeratorManagement = () => {
     cancelDeleteUser
   } = useUserDeletion(fetchData);
 
-  // Set up the selected classes when a user is selected for editing
+  // Initialize selected classes when a user is selected for editing
   if (editingUser && selectedClasses.length === 0) {
     const userClasses = moderatorClasses
       .filter(mc => mc.user_id === editingUser.id)
       .map(mc => mc.class_code);
-    updateSelectedClasses(userClasses);
+    
+    if (userClasses.length > 0) {
+      updateSelectedClasses(userClasses);
+    }
   }
 
   return {
@@ -57,6 +60,7 @@ export const useModeratorManagement = () => {
     onEditUser,
     handleEditClick,
     toggleClassSelection,
+    updateSelectedClasses,
     
     // User deletion
     userToDelete,
