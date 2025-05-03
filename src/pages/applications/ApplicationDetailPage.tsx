@@ -29,6 +29,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { ArrowLeft, Copy, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
+import { Application, ApplicationStatus } from '@/types/application';
 
 const ApplicationDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -41,7 +42,7 @@ const ApplicationDetailPage: React.FC = () => {
   // Find the application by id
   const application = id ? applications.find(app => app.id === id) : undefined;
   
-  const [newStatus, setNewStatus] = useState('');
+  const [newStatus, setNewStatus] = useState<ApplicationStatus>('pending');
   const [remarks, setRemarks] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
 
@@ -134,7 +135,7 @@ const ApplicationDetailPage: React.FC = () => {
     }
     
     updateApplication(application.id, {
-      status: newStatus as 'approved' | 'rejected' | 'pending',
+      status: newStatus,
       remarks: remarks,
       updatedAt: new Date().toISOString(),
     })
@@ -203,7 +204,7 @@ ${application.remarks ? `Remarks: ${application.remarks}` : ''}
                       <Label htmlFor="status">Status</Label>
                       <Select 
                         value={newStatus} 
-                        onValueChange={setNewStatus}
+                        onValueChange={(value: ApplicationStatus) => setNewStatus(value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />

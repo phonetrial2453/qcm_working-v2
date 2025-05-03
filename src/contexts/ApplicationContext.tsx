@@ -1,57 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Class, ClassRecord, Application as AppApplication, StudentApplication } from '@/types/supabase-types';
+import { Class, ClassRecord } from '@/types/supabase-types';
 import { useAuth } from './AuthContext';
 import { Json } from '@/integrations/supabase/types';
+import { Application as AppType, ApplicationStatus, ValidationError } from '@/types/application';
 
-export interface Application {
-  id: string;
-  classCode: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  studentDetails: {
-    fullName?: string;
-    mobile?: string;
-    whatsapp?: string;
-    [key: string]: any;
-  };
-  otherDetails: {
-    email?: string;
-    age?: number;
-    qualification?: string;
-    profession?: string;
-    [key: string]: any;
-  };
-  hometownDetails: {
-    area?: string;
-    city?: string;
-    district?: string;
-    state?: string;
-    [key: string]: any;
-  };
-  currentResidence: {
-    area?: string;
-    mandal?: string;
-    city?: string;
-    state?: string;
-    [key: string]: any;
-  };
-  referredBy: {
-    fullName?: string;
-    mobile?: string;
-    studentId?: string;
-    batch?: string;
-    [key: string]: any;
-  };
-  remarks: string;
-  callResponse: string;
-  studentNature: string;
-  studentCategory: string;
-  followUpBy: string;
-  naqeeb: string;
-  naqeebResponse: string;
-}
+export type Application = AppType;
 
 interface ApplicationContextType {
   applications: Application[];
@@ -60,8 +14,8 @@ interface ApplicationContextType {
   error: string | null;
   fetchApplications: () => Promise<void>;
   refreshClasses: () => Promise<void>;
-  createApplication: (applicationData: Partial<StudentApplication>) => Promise<string | null>;
-  updateApplication: (applicationId: string, applicationData: Partial<StudentApplication>) => Promise<string | null>;
+  createApplication: (applicationData: Partial<Application>) => Promise<string | null>;
+  updateApplication: (applicationId: string, applicationData: Partial<Application>) => Promise<string | null>;
   deleteApplication: (applicationId: string) => Promise<void>;
   formatApplicationForDisplay: (app: Application) => any;
   getApplication: (id: string) => Application | undefined;
@@ -137,11 +91,16 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
           const hometownDetails = app.hometown_details as { [key: string]: any } || {};
           const currentResidence = app.current_residence as { [key: string]: any } || {};
           const referredBy = app.referred_by as { [key: string]: any } || {};
+          
+          // Extract validation warnings if they exist in the data
+          const validationWarnings = studentDetails.validationWarnings || 
+                                 otherDetails.validationWarnings || 
+                                 app.validation_warnings || [];
 
           return {
             id: app.id,
             classCode: app.class_code,
-            status: app.status,
+            status: app.status as ApplicationStatus,
             createdAt: app.created_at,
             updatedAt: app.updated_at,
             studentDetails: {
@@ -184,7 +143,8 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
             studentCategory: app.student_category,
             followUpBy: app.followup_by,
             naqeeb: app.naqeeb,
-            naqeebResponse: app.naqeeb_response
+            naqeebResponse: app.naqeeb_response,
+            validationWarnings: validationWarnings
           };
         });
 
@@ -202,7 +162,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     return applications.find(app => app.id === id);
   };
 
-  const createApplication = async (applicationData: Partial<StudentApplication>): Promise<string | null> => {
+  const createApplication = async (applicationData: Partial<Application>): Promise<string | null> => {
     try {
       const { data, error } = await supabase
         .from('applications')
@@ -217,6 +177,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
             current_residence: applicationData.currentResidence || {},
             referred_by: applicationData.referredBy || {},
             remarks: applicationData.remarks,
+            validation_warnings: applicationData.validationWarnings || [],
             user_id: user?.id
           },
         ])
@@ -238,7 +199,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
-  const updateApplication = async (applicationId: string, applicationData: Partial<StudentApplication>): Promise<string | null> => {
+  const updateApplication = async (applicationId: string, applicationData: Partial<Application>): Promise<string | null> => {
     try {
       const updates: Record<string, any> = {};
       
@@ -250,6 +211,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       if (applicationData.currentResidence) updates.current_residence = applicationData.currentResidence;
       if (applicationData.referredBy) updates.referred_by = applicationData.referredBy;
       if (applicationData.remarks !== undefined) updates.remarks = applicationData.remarks;
+      if (applicationData.validationWarnings) updates.validation_warnings = applicationData.validationWarnings;
       
       const { data, error } = await supabase
         .from('applications')

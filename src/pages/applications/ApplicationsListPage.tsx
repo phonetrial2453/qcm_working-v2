@@ -10,6 +10,7 @@ import { ApplicationsTable } from '@/components/applications/ApplicationsTable';
 import { StatusUpdateDialog } from '@/components/applications/StatusUpdateDialog';
 import { FileImage } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Application, ApplicationStatus } from '@/types/application';
 
 const ApplicationsListPage: React.FC = () => {
   const { applications, classes, updateApplication, fetchApplications } = useApplications();
@@ -17,7 +18,7 @@ const ApplicationsListPage: React.FC = () => {
   const location = useLocation();
   const tableRef = useRef<HTMLDivElement>(null);
   
-  const [filteredApplications, setFilteredApplications] = useState(applications);
+  const [filteredApplications, setFilteredApplications] = useState<Application[]>(applications);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [classFilter, setClassFilter] = useState('all');
@@ -25,7 +26,7 @@ const ApplicationsListPage: React.FC = () => {
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [newStatus, setNewStatus] = useState<string>('');
+  const [newStatus, setNewStatus] = useState<ApplicationStatus>('pending');
 
   // Get class code from URL if provided
   useEffect(() => {
