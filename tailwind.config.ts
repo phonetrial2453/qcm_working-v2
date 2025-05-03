@@ -19,6 +19,10 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				handwriting: ['"Shadows Into Light Two"', 'cursive'],
+				arabic: ['"Scheherazade New"', 'serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',

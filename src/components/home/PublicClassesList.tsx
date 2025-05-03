@@ -24,6 +24,15 @@ const PublicClassesList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Array of tailwind background colors for cards
+  const cardColors = [
+    'bg-gradient-to-br from-green-50 to-green-100 border-green-200',
+    'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200',
+    'bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200',
+    'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200',
+    'bg-gradient-to-br from-rose-50 to-rose-100 border-rose-200',
+  ];
+
   useEffect(() => {
     const fetchClasses = async () => {
       try {
@@ -94,14 +103,17 @@ const PublicClassesList: React.FC = () => {
       <h2 className="text-2xl font-semibold mb-4">Available Classes</h2>
       <p className="text-muted-foreground mb-6">View details of the classes and their requirements.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {classes.map((cls) => (
-          <div key={cls.id} className="bg-white rounded-lg shadow-md p-6">
+        {classes.map((cls, index) => (
+          <div 
+            key={cls.id} 
+            className={`class-card rounded-lg shadow-md p-6 border ${cardColors[index % cardColors.length]}`}
+          >
             <h3 className="text-lg font-semibold mb-2">{cls.name}</h3>
-            <p className="text-gray-600 mb-4">{cls.description}</p>
+            <div className="mb-4 text-slate-700">{cls.description}</div>
             
-            {/* Requirements Section */}
-            <div className="space-y-3 mb-4">
-              <h4 className="font-medium text-islamic-primary">Requirements:</h4>
+            {/* Requirements Section - Styled separately */}
+            <div className="bg-white/70 rounded-lg p-3 mb-4">
+              <h4 className="font-medium text-islamic-primary mb-2">Requirements:</h4>
               <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
                 {cls.validationRules?.ageRange && (
                   <li>

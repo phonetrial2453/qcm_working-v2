@@ -5,22 +5,33 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { generateSimpleApplicationId } from "@/utils/applicationIdGenerator";
 import { useApplications } from "@/contexts/ApplicationContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SubmissionOptions {
   parsedData: any;
   selectedClassCode: string;
-  warningsCount: number;
+  warnings: Array<{ field: string; message: string }>;
 }
 
 export function useApplicationSubmission() {
   const { createApplication } = useApplications();
+  const { user, isAdmin } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async ({ parsedData, selectedClassCode, warningsCount }: SubmissionOptions) => {
+  const handleSubmit = async ({ parsedData, selectedClassCode, warnings }: SubmissionOptions) => {
     if (!parsedData || !selectedClassCode) {
       toast.error('Please select a class and enter valid application data');
       return;
+    }
+
+    // Check if user has access to this class
+    if (!isAdmin && user?.classes) {
+      const hasAccess = user.classes.includes(selectedClassCode);
+      if (!hasAccess) {
+        toast.error('You do not have permission to submit applications for this class');
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -34,6 +45,9 @@ export function useApplicationSubmission() {
       const currentCount = count || 0;
       const applicationId = generateSimpleApplicationId(selectedClassCode, currentCount);
 
+      // Format validation warnings for storage
+      const warningMessages = warnings.map(w => `${w.field}: ${w.message}`).join('; ');
+      
       const applicationData = {
         id: applicationId,
         classCode: selectedClassCode,
@@ -43,7 +57,9 @@ export function useApplicationSubmission() {
         hometownDetails: parsedData.hometownDetails || {},
         currentResidence: parsedData.currentResidence || {},
         referredBy: parsedData.referredBy || {},
-        remarks: `Auto-created application with ${warningsCount} validation warnings`,
+        remarks: warnings.length > 0 ? 
+          `Application has validation issues: ${warningMessages}` : 
+          'Application submitted with no validation warnings',
       };
 
       const result = await createApplication(applicationData);

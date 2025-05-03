@@ -1,24 +1,23 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApplications } from '@/contexts/ApplicationContext';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { parseApplicationText } from '@/utils/applicationValidation';
-import ValidationWarnings from './ValidationWarnings';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import PreviewFields from './PreviewFields';
-import { supabase } from '@/integrations/supabase/client';
-import { generateSimpleApplicationId } from '@/utils/applicationIdGenerator';
 import { ValidationResult } from '@/types/application';
 import { useApplicationValidation } from "./hooks/useApplicationValidation";
 import { useApplicationSubmission } from "./hooks/useApplicationSubmission";
 import ApplicationPreview from "./ApplicationPreview";
+import { useAuth } from '@/contexts/AuthContext';
 
 const NewApplicationForm: React.FC = () => {
   const { classes } = useApplications();
+  const { user, isAdmin } = useAuth();
   const [selectedClassCode, setSelectedClassCode] = useState<string>('');
   const [applicationText, setApplicationText] = useState<string>('');
   const [parsedData, setParsedData] = useState<any>(null);
@@ -27,6 +26,11 @@ const NewApplicationForm: React.FC = () => {
     useApplicationValidation(selectedClassCode, classes);
   const { handleSubmit, isSubmitting } = useApplicationSubmission();
   const navigate = useNavigate();
+  
+  // Filter classes based on user's access
+  const accessibleClasses = isAdmin 
+    ? classes 
+    : classes.filter(cls => user?.classes?.includes(cls.code));
 
   useEffect(() => {
     if (selectedClassCode) {
@@ -61,7 +65,7 @@ const NewApplicationForm: React.FC = () => {
     await handleSubmit({
       parsedData,
       selectedClassCode,
-      warningsCount: validationResult.warnings.length,
+      warnings: validationResult.warnings,
     });
   };
 
@@ -102,7 +106,7 @@ const NewApplicationForm: React.FC = () => {
                 <SelectValue placeholder="Select a class" />
               </SelectTrigger>
               <SelectContent>
-                {classes.map((classItem) => (
+                {accessibleClasses.map((classItem) => (
                   <SelectItem key={classItem.code} value={classItem.code}>
                     {classItem.name}
                   </SelectItem>

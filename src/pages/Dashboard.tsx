@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -5,7 +6,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, ShieldCheck, Settings, BookOpenCheck } from 'lucide-react';
+import { User, ShieldCheck, BookOpenCheck } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -43,7 +44,6 @@ const Dashboard: React.FC = () => {
   };
 
   const isAdmin = userRoles.includes('admin');
-  const isModerator = userRoles.includes('moderator');
 
   const handleSignOut = async () => {
     await signOut();
@@ -101,22 +101,6 @@ const Dashboard: React.FC = () => {
               <Button onClick={() => navigate('/admin')}>
                 <ShieldCheck className="mr-2 h-4 w-4" />
                 Admin Dashboard
-              </Button>
-            </Card>
-          )}
-
-          {isModerator && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Moderator</CardTitle>
-                <CardDescription>Moderator-only functions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                Moderate applications and manage user access.
-              </CardContent>
-              <Button onClick={() => navigate('/admin')}>
-                <Settings className="mr-2 h-4 w-4" />
-                Moderator Settings
               </Button>
             </Card>
           )}
