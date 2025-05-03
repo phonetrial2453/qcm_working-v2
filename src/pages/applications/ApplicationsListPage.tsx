@@ -165,6 +165,11 @@ const ApplicationsListPage: React.FC = () => {
     }
   };
 
+  // Fix the type conversion issue by adding an adapter function
+  const handleStatusChange = (status: string) => {
+    setNewStatus(status as ApplicationStatus);
+  };
+
   // Fix the type of the onChangeStatus function to accept ApplicationStatus
   const openStatusDialog = (applicationId: string) => {
     setSelectedApplicationId(applicationId);
@@ -209,7 +214,7 @@ const ApplicationsListPage: React.FC = () => {
           isOpen={isStatusDialogOpen}
           onOpenChange={setIsStatusDialogOpen}
           newStatus={newStatus}
-          onStatusChange={setNewStatus}
+          onStatusChange={handleStatusChange}
           onUpdate={handleStatusUpdate}
           isUpdating={updatingStatus}
         />

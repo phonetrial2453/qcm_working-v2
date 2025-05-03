@@ -12,6 +12,7 @@ export const transformValidationRules = (rules: Json) => {
 };
 
 export const formatApplicationForDisplay = (app: Application) => {
+  // Initialize with safe default objects to avoid potential null/undefined errors
   const studentDetails = app.studentDetails || {};
   const otherDetails = app.otherDetails || {};
   const currentResidence = app.currentResidence || {};
