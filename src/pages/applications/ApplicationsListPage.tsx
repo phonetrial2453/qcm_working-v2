@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useApplications } from '@/contexts/ApplicationContext';
@@ -165,6 +166,7 @@ const ApplicationsListPage: React.FC = () => {
     }
   };
 
+  // Fix the type of the onChangeStatus function to accept ApplicationStatus
   const openStatusDialog = (applicationId: string) => {
     setSelectedApplicationId(applicationId);
     setIsStatusDialogOpen(true);
