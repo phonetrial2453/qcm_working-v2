@@ -29,7 +29,7 @@ const AppFooter: React.FC = () => {
                 {ayah.originalArabic}
               </p>
             )}
-            <p className="text-xl font-serif leading-relaxed transition-all hover:scale-105 duration-500">
+            <p className="text-xl quote-text leading-relaxed transition-all hover:scale-105 duration-500">
               {ayah.text}
             </p>
             <p className="text-sm text-islamic-accent mt-2">

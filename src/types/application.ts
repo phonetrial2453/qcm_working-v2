@@ -1,45 +1,72 @@
 
+export type ApplicationStatus = 'pending' | 'approved' | 'rejected';
+
+export type ValidationError = {
+  field: string;
+  message: string;
+};
+
+export type ValidationResult = {
+  valid: boolean;
+  warnings: ValidationError[];
+};
+
+export interface StudentDetails {
+  fullName: string;
+  mobile: string;
+  whatsapp?: string;
+  [key: string]: any;
+}
+
+export interface OtherDetails {
+  email: string;
+  age?: number | string;
+  qualification?: string;
+  profession?: string;
+  [key: string]: any;
+}
+
+export interface HometownDetails {
+  area?: string;
+  city?: string;
+  district?: string;
+  state?: string;
+  [key: string]: any;
+}
+
+export interface CurrentResidence {
+  area?: string;
+  mandal?: string;
+  city?: string;
+  state?: string;
+  [key: string]: any;
+}
+
+export interface ReferredBy {
+  fullName?: string;
+  mobile?: string;
+  studentId?: string;
+  batch?: string;
+  [key: string]: any;
+}
+
 export interface Application {
   id: string;
   classCode: string;
-  status: string;
-  createdAt: string;
-  updatedAt?: string;
-  studentDetails?: {
-    fullName?: string;
-    mobile?: string;
-    whatsapp?: string;
-  };
-  otherDetails?: {
-    email?: string;
-    age?: number;
-    qualification?: string;
-  };
-  hometownDetails?: {
-    area?: string;
-    city?: string;
-    district?: string;
-    state?: string;
-  };
-  currentResidence?: {
-    area?: string;
-    city?: string;
-    mandal?: string;
-    state?: string;
-  };
-  referredBy?: {
-    fullName?: string;
-    mobile?: string;
-    studentId?: string;
-    batch?: string;
-  };
+  status: ApplicationStatus;
+  studentDetails: StudentDetails;
+  otherDetails: OtherDetails;
+  hometownDetails: HometownDetails;
+  currentResidence: CurrentResidence;
+  referredBy: ReferredBy;
   remarks?: string;
-}
-
-export interface ValidationResult {
-  valid: boolean;
-  warnings: {
-    field: string;
-    message: string;
-  }[];
+  callResponse?: string;
+  studentNature?: string;
+  studentCategory?: string;
+  followUpBy?: string;
+  naqeeb?: string;
+  naqeebResponse?: string;
+  createdAt: string;
+  updatedAt: string;
+  validationWarnings?: ValidationError[];
 }

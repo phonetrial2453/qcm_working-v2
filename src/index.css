@@ -1,5 +1,6 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Shadows+Into+Light+Two&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Scheherazade+New&display=swap');
 
 @tailwind base;
@@ -94,11 +95,15 @@
   }
 
   body {
-    @apply bg-background text-foreground font-handwriting;
+    @apply bg-background text-foreground font-barlow;
   }
   
   .arabic-text {
     font-family: 'Scheherazade New', serif;
+  }
+  
+  .quote-text {
+    font-family: 'Dancing Script', cursive;
   }
 }
 

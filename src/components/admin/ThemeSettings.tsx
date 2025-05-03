@@ -10,8 +10,10 @@ import { Moon, Sun, Palette } from 'lucide-react';
 const themeColors = [
   { id: 'green', name: 'Green', bgClass: 'bg-islamic-primary' },
   { id: 'blue', name: 'Blue', bgClass: 'bg-islamic-blue' },
-  { id: 'brown', name: 'Brown', bgClass: 'bg-amber-800' },
   { id: 'purple', name: 'Purple', bgClass: 'bg-purple-800' },
+  { id: 'brown', name: 'Brown', bgClass: 'bg-amber-800' },
+  { id: 'teal', name: 'Teal', bgClass: 'bg-teal-700' },
+  { id: 'indigo', name: 'Indigo', bgClass: 'bg-indigo-700' },
 ];
 
 const ThemeSettings: React.FC = () => {
@@ -74,6 +76,7 @@ const ThemeSettings: React.FC = () => {
                       flex items-center space-x-2 rounded-md border-2 px-4 py-3
                       ${themeColor === color.id ? 'border-primary' : 'border-transparent'}
                       hover:bg-accent hover:text-accent-foreground cursor-pointer
+                      transition-all duration-200
                     `}
                   >
                     <div className={`w-5 h-5 rounded-full ${color.bgClass}`} />

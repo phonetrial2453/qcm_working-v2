@@ -20,7 +20,8 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				handwriting: ['"Shadows Into Light Two"', 'cursive'],
+				barlow: ['Barlow', 'sans-serif'],
+				handwriting: ['Dancing Script', 'cursive'],
 				arabic: ['"Scheherazade New"', 'serif'],
 			},
 			colors: {

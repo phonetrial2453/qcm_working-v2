@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApplications } from '@/contexts/ApplicationContext';
@@ -7,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import ApplicationPDFExport from '@/components/applications/ApplicationPDFExport';
 import { 
   Dialog,
   DialogContent,
@@ -25,8 +27,8 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from '@/components/ui/sonner';
-import { ArrowLeft, Copy, CheckCircle, XCircle, Clock, AlertCircle, Download } from 'lucide-react';
+import { toast } from 'sonner';
+import { ArrowLeft, Copy, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
 
 const ApplicationDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -162,11 +164,6 @@ ${application.remarks ? `Remarks: ${application.remarks}` : ''}
       .then(() => toast.success('Status info copied to clipboard'))
       .catch(() => toast.error('Failed to copy to clipboard'));
   };
-  
-  // Export as PDF (mock)
-  const exportAsPDF = () => {
-    toast.info('PDF export would be implemented here');
-  };
 
   return (
     <AppLayout>
@@ -186,10 +183,7 @@ ${application.remarks ? `Remarks: ${application.remarks}` : ''}
               <Copy className="h-4 w-4 mr-2" />
               Copy Status
             </Button>
-            <Button variant="outline" onClick={exportAsPDF}>
-              <Download className="h-4 w-4 mr-2" />
-              Export PDF
-            </Button>
+            <ApplicationPDFExport application={application} />
             {isAdmin && (
               <Dialog open={openDialog} onOpenChange={setOpenDialog}>
                 <DialogTrigger asChild>
@@ -272,6 +266,18 @@ ${application.remarks ? `Remarks: ${application.remarks}` : ''}
               <div className="mb-4 p-3 bg-muted rounded-md">
                 <h3 className="font-medium mb-1">Remarks</h3>
                 <p className="text-sm">{application.remarks}</p>
+              </div>
+            )}
+            
+            {/* Show validation warnings if they exist */}
+            {application.validationWarnings && application.validationWarnings.length > 0 && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-md">
+                <h3 className="font-medium mb-1 text-amber-800">Validation Warnings</h3>
+                <ul className="text-sm text-amber-700 space-y-1">
+                  {application.validationWarnings.map((warning, index) => (
+                    <li key={index}>• {warning.field}: {warning.message}</li>
+                  ))}
+                </ul>
               </div>
             )}
             

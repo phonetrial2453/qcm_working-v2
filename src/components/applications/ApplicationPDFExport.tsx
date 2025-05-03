@@ -1,3 +1,4 @@
+
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileText } from 'lucide-react';
@@ -137,6 +138,18 @@ const ApplicationPDFExport: React.FC<ApplicationPDFExportProps> = ({ application
             <div className="mb-4">
               <h2 className="text-lg font-semibold mb-2">Remarks</h2>
               <p className="pl-4">{application.remarks}</p>
+            </div>
+          )}
+          
+          {/* Validation Warnings */}
+          {application.validationWarnings && application.validationWarnings.length > 0 && (
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold mb-2 text-amber-600">Validation Warnings</h2>
+              <div className="pl-4">
+                {application.validationWarnings.map((warning, index) => (
+                  <p key={index} className="text-amber-600">• {warning.field}: {warning.message}</p>
+                ))}
+              </div>
             </div>
           )}
         </div>

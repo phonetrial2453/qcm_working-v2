@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 type Theme = 'light' | 'dark';
-type ThemeColor = 'green' | 'blue' | 'purple' | 'brown';
+type ThemeColor = 'green' | 'blue' | 'purple' | 'brown' | 'teal' | 'indigo';
 
 interface ThemeContextType {
   theme: Theme;
@@ -65,10 +65,111 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetchUserPreferences();
   }, []);
 
+  // Apply theme color variables
+  useEffect(() => {
+    // Update CSS variables based on selected color
+    updateThemeColorVariables(themeColor, theme);
+  }, [themeColor, theme]);
+
+  const updateThemeColorVariables = (color: ThemeColor, currentTheme: Theme) => {
+    const isDark = currentTheme === 'dark';
+    
+    // Define color palettes for each theme color
+    const colorPalettes: Record<ThemeColor, { light: Record<string, string>, dark: Record<string, string> }> = {
+      green: {
+        light: {
+          primary: '156 47% 14%',
+          secondary: '109 34% 32%',
+          accent: '39 100% 61%',
+        },
+        dark: {
+          primary: '156 47% 50%',
+          secondary: '109 34% 42%',
+          accent: '39 100% 61%',
+        }
+      },
+      blue: {
+        light: {
+          primary: '210 100% 25%',
+          secondary: '210 70% 40%',
+          accent: '35 100% 60%',
+        },
+        dark: {
+          primary: '210 100% 50%',
+          secondary: '210 70% 60%',
+          accent: '35 100% 60%',
+        }
+      },
+      purple: {
+        light: {
+          primary: '270 50% 30%',
+          secondary: '270 30% 50%',
+          accent: '330 100% 70%',
+        },
+        dark: {
+          primary: '270 50% 50%',
+          secondary: '270 30% 60%',
+          accent: '330 100% 70%',
+        }
+      },
+      brown: {
+        light: {
+          primary: '30 50% 30%',
+          secondary: '30 30% 45%',
+          accent: '45 100% 60%',
+        },
+        dark: {
+          primary: '30 50% 40%',
+          secondary: '30 30% 50%',
+          accent: '45 100% 60%',
+        }
+      },
+      teal: {
+        light: {
+          primary: '180 50% 25%',
+          secondary: '180 35% 40%',
+          accent: '150 100% 65%',
+        },
+        dark: {
+          primary: '180 50% 40%',
+          secondary: '180 35% 50%',
+          accent: '150 100% 65%',
+        }
+      },
+      indigo: {
+        light: {
+          primary: '240 60% 30%',
+          secondary: '240 40% 45%',
+          accent: '280 100% 70%',
+        },
+        dark: {
+          primary: '240 60% 50%',
+          secondary: '240 40% 60%',
+          accent: '280 100% 70%',
+        }
+      },
+    };
+
+    // Get the selected color palette
+    const palette = colorPalettes[color][isDark ? 'dark' : 'light'];
+    
+    // Apply the color palette
+    document.documentElement.style.setProperty('--primary', palette.primary);
+    document.documentElement.style.setProperty('--secondary', palette.secondary);
+    document.documentElement.style.setProperty('--accent', palette.accent);
+    
+    // Also update sidebar colors
+    document.documentElement.style.setProperty('--sidebar-primary', palette.accent);
+    document.documentElement.style.setProperty('--sidebar-background', palette.primary);
+  };
+
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
     localStorage.setItem('theme', newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    
+    // Update colors for the new theme
+    updateThemeColorVariables(themeColor, newTheme);
     
     // Save to database if user is logged in
     saveUserPreferences({ theme: newTheme });
@@ -78,6 +179,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setThemeColorState(newColor);
     localStorage.setItem('themeColor', newColor);
     document.documentElement.setAttribute('data-theme-color', newColor);
+    
+    // Update colors for the new color
+    updateThemeColorVariables(newColor, theme);
     
     // Save to database if user is logged in
     saveUserPreferences({ themeColor: newColor });
