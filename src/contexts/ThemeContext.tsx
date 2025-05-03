@@ -38,23 +38,25 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
-        const { data: preferences } = await supabase
-          .from('user_preferences')
-          .select('theme, theme_color')
-          .eq('user_id', session.user.id)
-          .single();
+        const { data: settings } = await supabase
+          .from('app_settings')
+          .select('key, value')
+          .eq('key', `user_theme_${session.user.id}`)
+          .maybeSingle();
           
-        if (preferences) {
-          if (preferences.theme) {
-            setThemeState(preferences.theme as Theme);
-            localStorage.setItem('theme', preferences.theme);
-            document.documentElement.classList.toggle('dark', preferences.theme === 'dark');
+        if (settings) {
+          const userPrefs = settings.value as { theme?: Theme; theme_color?: ThemeColor };
+          
+          if (userPrefs.theme) {
+            setThemeState(userPrefs.theme);
+            localStorage.setItem('theme', userPrefs.theme);
+            document.documentElement.classList.toggle('dark', userPrefs.theme === 'dark');
           }
           
-          if (preferences.theme_color) {
-            setThemeColorState(preferences.theme_color as ThemeColor);
-            localStorage.setItem('themeColor', preferences.theme_color);
-            document.documentElement.setAttribute('data-theme-color', preferences.theme_color);
+          if (userPrefs.theme_color) {
+            setThemeColorState(userPrefs.theme_color);
+            localStorage.setItem('themeColor', userPrefs.theme_color);
+            document.documentElement.setAttribute('data-theme-color', userPrefs.theme_color);
           }
         }
       }
@@ -85,16 +87,28 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const { data: { session } } = await supabase.auth.getSession();
     
     if (session?.user) {
-      const updates: { [key: string]: any } = {};
+      const userId = session.user.id;
+      const settingKey = `user_theme_${userId}`;
       
-      if (newTheme) updates.theme = newTheme;
-      if (newColor) updates.theme_color = newColor;
+      // First, check if setting exists
+      const { data: existingSetting } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', settingKey)
+        .maybeSingle();
+        
+      const updatedValue = {
+        ...(existingSetting?.value as object || {}),
+        ...(newTheme ? { theme: newTheme } : {}),
+        ...(newColor ? { theme_color: newColor } : {})
+      };
       
+      // Upsert the theme settings
       await supabase
-        .from('user_preferences')
+        .from('app_settings')
         .upsert({ 
-          user_id: session.user.id,
-          ...updates
+          key: settingKey,
+          value: updatedValue
         })
         .select();
     }
