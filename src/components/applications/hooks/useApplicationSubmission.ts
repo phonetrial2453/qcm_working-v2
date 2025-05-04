@@ -32,24 +32,31 @@ export const useApplicationSubmission = () => {
     setIsSubmitting(true);
 
     try {
-      // Add class code to parsed data
+      // Add class code and detailed validation warnings to parsed data
       const applicationData = {
         ...parsedData,
         classCode: selectedClassCode,
         validationWarnings: warnings.length > 0 ? warnings : undefined,
-        remarks: warnings.length > 0 ? 
-          `Application submitted with ${warnings.length} validation warning(s):\n${warnings.map(w => `- ${w.field}: ${w.message}`).join('\n')}` :
-          parsedData.remarks || ''
       };
+
+      // Add detailed remarks about warnings if any exist
+      if (warnings.length > 0) {
+        const warningDetails = warnings.map(w => `- ${w.field}: ${w.message}`).join('\n');
+        applicationData.remarks = parsedData.remarks 
+          ? `${parsedData.remarks}\n\n---\nValidation Warnings:\n${warningDetails}`
+          : `Application submitted with validation warnings:\n${warningDetails}`;
+      }
 
       const applicationId = await createApplication(applicationData);
 
       if (applicationId) {
-        const warningsMessage = warnings.length > 0 
-          ? `Application submitted with ${warnings.length} validation warning(s)`
-          : 'Application submitted successfully!';
+        let message = 'Application submitted successfully!';
         
-        toast.success(warningsMessage);
+        if (warnings.length > 0) {
+          message = `Application submitted with ${warnings.length} validation warning(s)`;
+        }
+        
+        toast.success(message);
         navigate(`/applications/${applicationId}`);
       }
     } catch (error) {

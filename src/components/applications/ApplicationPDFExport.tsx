@@ -1,8 +1,8 @@
 
-import React, { useRef } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { FileText } from 'lucide-react';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { Application } from '@/types/application';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -12,7 +12,7 @@ interface ApplicationPDFExportProps {
 }
 
 const ApplicationPDFExport: React.FC<ApplicationPDFExportProps> = ({ application }) => {
-  const contentRef = useRef<HTMLDivElement>(null);
+  const contentRef = React.useRef<HTMLDivElement>(null);
   
   const exportToPDF = async () => {
     if (!contentRef.current) {
@@ -23,17 +23,32 @@ const ApplicationPDFExport: React.FC<ApplicationPDFExportProps> = ({ application
     try {
       toast.info("Generating PDF...");
       
-      const canvas = await html2canvas(contentRef.current, {
+      // Create a hidden clone of the content with proper styling for PDF
+      const pdfContent = document.createElement('div');
+      pdfContent.innerHTML = contentRef.current.innerHTML;
+      pdfContent.style.position = 'absolute';
+      pdfContent.style.left = '-9999px';
+      pdfContent.style.background = '#ffffff';
+      pdfContent.style.padding = '20px';
+      pdfContent.style.width = '800px';
+      pdfContent.style.fontSize = '12px';
+      pdfContent.style.color = '#000000';
+      document.body.appendChild(pdfContent);
+      
+      // Generate canvas from the styled DOM
+      const canvas = await html2canvas(pdfContent, {
         scale: 2,
-        logging: false,
-        backgroundColor: '#ffffff',
         useCORS: true,
         allowTaint: true,
+        backgroundColor: '#ffffff',
       });
+      
+      // Clean up the temporary DOM element
+      document.body.removeChild(pdfContent);
       
       const imgWidth = 210; // A4 width in mm
       const pageHeight = 297; // A4 height in mm
-      const imgHeight = canvas.height * imgWidth / canvas.width;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
       const pdf = new jsPDF('p', 'mm', 'a4');
       
@@ -45,36 +60,40 @@ const ApplicationPDFExport: React.FC<ApplicationPDFExportProps> = ({ application
       pdf.setFontSize(10);
       pdf.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 30);
       
-      // Split content into multiple pages if needed
-      let heightLeft = imgHeight;
-      let position = 40;
-      
-      // First page
+      // Add the image to the PDF
       pdf.addImage(
-        canvas.toDataURL('image/jpeg', 0.95),
+        canvas.toDataURL('image/jpeg', 1.0),
         'JPEG',
         10,
-        position,
+        40,
         imgWidth - 20,
         imgHeight
       );
-      heightLeft -= (pageHeight - position);
       
-      // Additional pages if content overflows
-      while (heightLeft >= 0) {
-        position = 0;
+      // If content extends beyond a single page, add more pages
+      let heightLeft = imgHeight;
+      let position = 40; // Starting position
+      
+      while (heightLeft >= pageHeight - position) {
+        // Add new page
         pdf.addPage();
+        position = 0; // Reset position for new page
+        
+        // Add content to the new page with appropriate offset
         pdf.addImage(
-          canvas.toDataURL('image/jpeg', 0.95),
+          canvas.toDataURL('image/jpeg', 1.0),
           'JPEG',
           10,
-          position - (pageHeight - 40),
+          -(pageHeight - 40), // Negative offset to show next part
           imgWidth - 20,
           imgHeight
         );
-        heightLeft -= pageHeight;
+        
+        // Reduce remaining height
+        heightLeft -= (pageHeight - position);
       }
       
+      // Save the PDF
       pdf.save(`application-${application.id}.pdf`);
       toast.success("PDF downloaded successfully");
       

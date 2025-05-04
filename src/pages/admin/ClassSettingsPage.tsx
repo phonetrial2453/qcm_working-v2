@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,8 +18,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { toast } from '@/components/ui/sonner';
-import { ArrowLeft } from 'lucide-react';
+import { toast } from 'sonner';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const formSchema = z.object({
@@ -43,8 +43,9 @@ const formSchema = z.object({
 
 const ClassSettingsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { classCode } = useParams();
+  const { classCode } = useParams<{ classCode: string }>();
   const { classes, refreshClasses } = useApplications();
+  const [loading, setLoading] = useState(true);
   const isEditing = Boolean(classCode);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -63,23 +64,56 @@ const ClassSettingsPage: React.FC = () => {
   });
 
   useEffect(() => {
-    if (isEditing && classCode) {
-      const classData = classes.find(c => c.code === classCode);
-      if (classData) {
-        form.reset({
-          code: classData.code,
-          name: classData.name,
-          description: classData.description || '',
-          validationRules: classData.validationRules || {
-            ageRange: { min: undefined, max: undefined },
-            allowedStates: [],
-            minimumQualification: '',
-          },
-          template: classData.template || '',
-        });
+    const fetchClass = async () => {
+      setLoading(true);
+      if (isEditing && classCode) {
+        // First check in the context
+        let classData = classes.find(c => c.code === classCode);
+        
+        // If not found in context, try to fetch directly from database
+        if (!classData) {
+          const { data, error } = await supabase
+            .from('classes')
+            .select('*')
+            .eq('code', classCode)
+            .single();
+            
+          if (error) {
+            console.error('Error fetching class:', error);
+            toast.error('Failed to load class data');
+            navigate('/admin/classes');
+            return;
+          }
+          
+          if (data) {
+            classData = data;
+          } else {
+            toast.error('Class not found');
+            navigate('/admin/classes');
+            return;
+          }
+        }
+        
+        // Once we have the class data, update the form
+        if (classData) {
+          form.reset({
+            code: classData.code,
+            name: classData.name,
+            description: classData.description || '',
+            validationRules: classData.validation_rules || {
+              ageRange: { min: undefined, max: undefined },
+              allowedStates: [],
+              minimumQualification: '',
+            },
+            template: classData.template || '',
+          });
+        }
       }
-    }
-  }, [isEditing, classCode, classes, form]);
+      setLoading(false);
+    };
+
+    fetchClass();
+  }, [isEditing, classCode, classes, form, navigate]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -101,7 +135,7 @@ const ClassSettingsPage: React.FC = () => {
             validation_rules: values.validationRules,
             template: values.template,
           },
-        ], { onConflict: 'code' }); // Fix: Added onConflict option
+        ], { onConflict: 'code' });
 
       if (error) throw error;
 
@@ -116,6 +150,16 @@ const ClassSettingsPage: React.FC = () => {
 
   const validationObj = form.watch("validationRules") || {};
   const allowedStates = Array.isArray(validationObj.allowedStates) ? validationObj.allowedStates.join(", ") : "";
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto max-w-2xl flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -142,10 +186,15 @@ const ClassSettingsPage: React.FC = () => {
                 <FormItem>
                   <FormLabel>Class Code</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., QRAN101" {...field} />
+                    <Input 
+                      placeholder="e.g., QRAN101" 
+                      {...field}
+                      disabled={isEditing}
+                    />
                   </FormControl>
                   <FormDescription>
                     This is the unique code for the class.
+                    {isEditing && " The code cannot be changed once created."}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -198,7 +247,7 @@ const ClassSettingsPage: React.FC = () => {
                     <Input
                       type="number"
                       placeholder="e.g., 13"
-                      {...field}
+                      value={field.value === undefined ? '' : field.value}
                       onChange={(e) => {
                         const value = e.target.value === '' ? undefined : Number(e.target.value);
                         form.setValue("validationRules.ageRange.min", value);
@@ -224,8 +273,8 @@ const ClassSettingsPage: React.FC = () => {
                     <Input
                       type="number"
                       placeholder="e.g., 19"
-                      {...field}
-                       onChange={(e) => {
+                      value={field.value === undefined ? '' : field.value}
+                      onChange={(e) => {
                         const value = e.target.value === '' ? undefined : Number(e.target.value);
                         form.setValue("validationRules.ageRange.max", value);
                       }}
@@ -293,7 +342,7 @@ const ClassSettingsPage: React.FC = () => {
                   <FormControl>
                     <Textarea
                       placeholder="Paste the JSON template here"
-                      className="resize-none"
+                      className="resize-y min-h-[200px] font-mono"
                       {...field}
                     />
                   </FormControl>
@@ -305,8 +354,8 @@ const ClassSettingsPage: React.FC = () => {
               )}
             />
 
-            <Button type="submit" className="bg-islamic-primary hover:bg-islamic-primary/90">
-              Submit
+            <Button type="submit">
+              {isEditing ? 'Update Class' : 'Create Class'}
             </Button>
           </form>
         </Form>

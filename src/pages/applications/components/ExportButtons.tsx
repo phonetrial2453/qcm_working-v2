@@ -17,11 +17,11 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({
 }) => {
   return (
     <div className="flex justify-end mb-4 gap-2">
-      <Button variant="outline" onClick={onExportCSV}>
+      <Button variant="outline" onClick={onExportCSV} size="sm">
         <Download className="h-4 w-4 mr-2" />
         Export CSV
       </Button>
-      <Button variant="outline" onClick={onExportImage}>
+      <Button variant="outline" onClick={onExportImage} size="sm">
         <FileImage className="h-4 w-4 mr-2" />
         Export as Image
       </Button>

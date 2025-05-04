@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 type Theme = 'light' | 'dark';
 type ThemeColor = 'green' | 'blue' | 'purple' | 'brown' | 'teal' | 'indigo';
@@ -17,160 +18,138 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>('light');
   const [themeColor, setThemeColorState] = useState<ThemeColor>('green');
+  const [isInitializing, setIsInitializing] = useState(true);
 
+  // Load preferences from localStorage and/or database
   useEffect(() => {
-    // Check local storage first
-    const storedTheme = localStorage.getItem('theme') as Theme;
-    const storedColor = localStorage.getItem('themeColor') as ThemeColor;
-    
-    if (storedTheme) {
-      setThemeState(storedTheme);
-      document.documentElement.classList.toggle('dark', storedTheme === 'dark');
-    }
-    
-    if (storedColor) {
-      setThemeColorState(storedColor);
-      document.documentElement.setAttribute('data-theme-color', storedColor);
-    }
-    
-    // Then try to fetch from database if user is logged in
-    const fetchUserPreferences = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        const { data: settings } = await supabase
-          .from('app_settings')
-          .select('key, value')
-          .eq('key', `user_theme_${session.user.id}`)
-          .maybeSingle();
-          
-        if (settings) {
-          const userPrefs = settings.value as { theme?: Theme; theme_color?: ThemeColor };
-          
-          if (userPrefs.theme) {
-            setThemeState(userPrefs.theme);
-            localStorage.setItem('theme', userPrefs.theme);
-            document.documentElement.classList.toggle('dark', userPrefs.theme === 'dark');
-          }
-          
-          if (userPrefs.theme_color) {
-            setThemeColorState(userPrefs.theme_color);
-            localStorage.setItem('themeColor', userPrefs.theme_color);
-            document.documentElement.setAttribute('data-theme-color', userPrefs.theme_color);
+    const loadPreferences = async () => {
+      try {
+        // 1. Check localStorage first for quick loading
+        const storedTheme = localStorage.getItem('theme') as Theme;
+        const storedColor = localStorage.getItem('themeColor') as ThemeColor;
+        
+        if (storedTheme) {
+          setThemeState(storedTheme);
+          document.documentElement.classList.toggle('dark', storedTheme === 'dark');
+        }
+        
+        if (storedColor) {
+          setThemeColorState(storedColor);
+          document.documentElement.setAttribute('data-theme-color', storedColor);
+        }
+        
+        // 2. Then try to fetch from database if user is logged in
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          const { data: settings } = await supabase
+            .from('app_settings')
+            .select('key, value')
+            .eq('key', `user_theme_${session.user.id}`)
+            .maybeSingle();
+            
+          if (settings) {
+            const userPrefs = settings.value as { theme?: Theme; theme_color?: ThemeColor };
+            
+            if (userPrefs.theme) {
+              setThemeState(userPrefs.theme);
+              localStorage.setItem('theme', userPrefs.theme);
+              document.documentElement.classList.toggle('dark', userPrefs.theme === 'dark');
+            }
+            
+            if (userPrefs.theme_color) {
+              setThemeColorState(userPrefs.theme_color);
+              localStorage.setItem('themeColor', userPrefs.theme_color);
+              document.documentElement.setAttribute('data-theme-color', userPrefs.theme_color);
+            }
           }
         }
+      } catch (error) {
+        console.error('Failed to load theme preferences:', error);
+      } finally {
+        setIsInitializing(false);
       }
     };
     
-    fetchUserPreferences();
+    loadPreferences();
   }, []);
 
-  // Apply theme color variables
+  // Apply theme color variables whenever theme or color changes
   useEffect(() => {
-    // Update CSS variables based on selected color
+    if (isInitializing) return;
     updateThemeColorVariables(themeColor, theme);
-  }, [themeColor, theme]);
+  }, [themeColor, theme, isInitializing]);
 
   const updateThemeColorVariables = (color: ThemeColor, currentTheme: Theme) => {
     const isDark = currentTheme === 'dark';
     
-    // Define color palettes for each theme color
-    const colorPalettes: Record<ThemeColor, { light: Record<string, string>, dark: Record<string, string> }> = {
+    // Color HSL values for each theme
+    const colorValues = {
       green: {
-        light: {
-          primary: '156 47% 14%',
-          secondary: '109 34% 32%',
-          accent: '39 100% 61%',
-        },
-        dark: {
-          primary: '156 47% 50%',
-          secondary: '109 34% 42%',
-          accent: '39 100% 61%',
-        }
+        primary: isDark ? '156 47% 50%' : '156 47% 14%',
+        secondary: isDark ? '109 34% 42%' : '109 34% 32%',
+        accent: '39 100% 61%',
+        background: isDark ? '156 47% 5%' : '159 48% 21% 0.02',
+        card: isDark ? '156 47% 10%' : '0 0% 100%',
       },
       blue: {
-        light: {
-          primary: '210 100% 25%',
-          secondary: '210 70% 40%',
-          accent: '35 100% 60%',
-        },
-        dark: {
-          primary: '210 100% 50%',
-          secondary: '210 70% 60%',
-          accent: '35 100% 60%',
-        }
+        primary: isDark ? '210 100% 50%' : '210 100% 25%',
+        secondary: isDark ? '210 70% 60%' : '210 70% 40%',
+        accent: '35 100% 60%',
+        background: isDark ? '210 47% 5%' : '210 48% 21% 0.02',
+        card: isDark ? '210 47% 10%' : '0 0% 100%',
       },
       purple: {
-        light: {
-          primary: '270 50% 30%',
-          secondary: '270 30% 50%',
-          accent: '330 100% 70%',
-        },
-        dark: {
-          primary: '270 50% 50%',
-          secondary: '270 30% 60%',
-          accent: '330 100% 70%',
-        }
+        primary: isDark ? '270 50% 50%' : '270 50% 30%',
+        secondary: isDark ? '270 30% 60%' : '270 30% 50%',
+        accent: '330 100% 70%',
+        background: isDark ? '270 47% 5%' : '270 48% 21% 0.02',
+        card: isDark ? '270 47% 10%' : '0 0% 100%',
       },
       brown: {
-        light: {
-          primary: '30 50% 30%',
-          secondary: '30 30% 45%',
-          accent: '45 100% 60%',
-        },
-        dark: {
-          primary: '30 50% 40%',
-          secondary: '30 30% 50%',
-          accent: '45 100% 60%',
-        }
+        primary: isDark ? '30 50% 40%' : '30 50% 30%',
+        secondary: isDark ? '30 30% 50%' : '30 30% 45%',
+        accent: '45 100% 60%',
+        background: isDark ? '30 47% 5%' : '30 48% 21% 0.02',
+        card: isDark ? '30 47% 10%' : '0 0% 100%',
       },
       teal: {
-        light: {
-          primary: '180 50% 25%',
-          secondary: '180 35% 40%',
-          accent: '150 100% 65%',
-        },
-        dark: {
-          primary: '180 50% 40%',
-          secondary: '180 35% 50%',
-          accent: '150 100% 65%',
-        }
+        primary: isDark ? '180 50% 40%' : '180 50% 25%',
+        secondary: isDark ? '180 35% 50%' : '180 35% 40%',
+        accent: '150 100% 65%',
+        background: isDark ? '180 47% 5%' : '180 48% 21% 0.02',
+        card: isDark ? '180 47% 10%' : '0 0% 100%',
       },
       indigo: {
-        light: {
-          primary: '240 60% 30%',
-          secondary: '240 40% 45%',
-          accent: '280 100% 70%',
-        },
-        dark: {
-          primary: '240 60% 50%',
-          secondary: '240 40% 60%',
-          accent: '280 100% 70%',
-        }
+        primary: isDark ? '240 60% 50%' : '240 60% 30%',
+        secondary: isDark ? '240 40% 60%' : '240 40% 45%',
+        accent: '280 100% 70%',
+        background: isDark ? '240 47% 5%' : '240 48% 21% 0.02',
+        card: isDark ? '240 47% 10%' : '0 0% 100%',
       },
     };
-
-    // Get the selected color palette
-    const palette = colorPalettes[color][isDark ? 'dark' : 'light'];
     
-    // Apply the color palette to CSS variables
-    Object.entries(palette).forEach(([key, value]) => {
-      document.documentElement.style.setProperty(`--${key}`, value);
-    });
+    // Select the chosen color palette
+    const selectedColors = colorValues[color];
     
-    // Update sidebar colors
-    document.documentElement.style.setProperty('--sidebar-primary', palette.accent);
-    document.documentElement.style.setProperty('--sidebar-background', palette.primary);
+    // Apply the colors to CSS variables
+    document.documentElement.style.setProperty('--primary', selectedColors.primary);
+    document.documentElement.style.setProperty('--secondary', selectedColors.secondary);
+    document.documentElement.style.setProperty('--accent', selectedColors.accent);
+    document.documentElement.style.setProperty('--background', selectedColors.background);
+    document.documentElement.style.setProperty('--card', selectedColors.card);
+    document.documentElement.style.setProperty('--popover', selectedColors.card);
     
-    // Update other variables based on the selected color
-    if (isDark) {
-      document.documentElement.style.setProperty('--background', `${color === 'green' ? '156' : color === 'blue' ? '210' : color === 'purple' ? '270' : color === 'brown' ? '30' : color === 'teal' ? '180' : '240'} 47% 5%`);
-      document.documentElement.style.setProperty('--card', `${color === 'green' ? '156' : color === 'blue' ? '210' : color === 'purple' ? '270' : color === 'brown' ? '30' : color === 'teal' ? '180' : '240'} 47% 10%`);
-      document.documentElement.style.setProperty('--popover', `${color === 'green' ? '156' : color === 'blue' ? '210' : color === 'purple' ? '270' : color === 'brown' ? '30' : color === 'teal' ? '180' : '240'} 47% 10%`);
-    }
+    // Update sidebar variables
+    document.documentElement.style.setProperty('--sidebar-background', selectedColors.primary);
+    document.documentElement.style.setProperty('--sidebar-primary', selectedColors.accent);
+    
+    // Set data attribute for global theme reference
+    document.documentElement.setAttribute('data-theme-color', color);
   };
 
-  const setTheme = (newTheme: Theme) => {
+  // Save theme preference
+  const setTheme = async (newTheme: Theme) => {
     setThemeState(newTheme);
     localStorage.setItem('theme', newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
@@ -179,29 +158,44 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     updateThemeColorVariables(themeColor, newTheme);
     
     // Save to database if user is logged in
-    saveUserPreferences({ theme: newTheme });
+    try {
+      await saveUserPreferences({ theme: newTheme });
+    } catch (error) {
+      console.error('Failed to save theme preference:', error);
+    }
   };
 
-  const setThemeColor = (newColor: ThemeColor) => {
+  // Save color preference
+  const setThemeColor = async (newColor: ThemeColor) => {
     setThemeColorState(newColor);
     localStorage.setItem('themeColor', newColor);
-    document.documentElement.setAttribute('data-theme-color', newColor);
     
     // Update colors for the new color
     updateThemeColorVariables(newColor, theme);
     
     // Save to database if user is logged in
-    saveUserPreferences({ themeColor: newColor });
+    try {
+      await saveUserPreferences({ themeColor: newColor });
+    } catch (error) {
+      console.error('Failed to save color preference:', error);
+    }
   };
   
-  const saveUserPreferences = async ({ theme: newTheme, themeColor: newColor }: { theme?: Theme, themeColor?: ThemeColor }) => {
+  // Helper to save preferences to database
+  const saveUserPreferences = async ({ 
+    theme: newTheme, 
+    themeColor: newColor 
+  }: { 
+    theme?: Theme, 
+    themeColor?: ThemeColor 
+  }) => {
     const { data: { session } } = await supabase.auth.getSession();
     
     if (session?.user) {
       const userId = session.user.id;
       const settingKey = `user_theme_${userId}`;
       
-      // First, check if setting exists
+      // Check if setting exists
       const { data: existingSetting } = await supabase
         .from('app_settings')
         .select('value')
@@ -215,13 +209,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       };
       
       // Upsert the theme settings
-      await supabase
+      const { error } = await supabase
         .from('app_settings')
         .upsert({ 
           key: settingKey,
           value: updatedValue
-        })
-        .select();
+        });
+        
+      if (error) throw error;
     }
   };
 
