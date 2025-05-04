@@ -153,14 +153,21 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Get the selected color palette
     const palette = colorPalettes[color][isDark ? 'dark' : 'light'];
     
-    // Apply the color palette
-    document.documentElement.style.setProperty('--primary', palette.primary);
-    document.documentElement.style.setProperty('--secondary', palette.secondary);
-    document.documentElement.style.setProperty('--accent', palette.accent);
+    // Apply the color palette to CSS variables
+    Object.entries(palette).forEach(([key, value]) => {
+      document.documentElement.style.setProperty(`--${key}`, value);
+    });
     
-    // Also update sidebar colors
+    // Update sidebar colors
     document.documentElement.style.setProperty('--sidebar-primary', palette.accent);
     document.documentElement.style.setProperty('--sidebar-background', palette.primary);
+    
+    // Update other variables based on the selected color
+    if (isDark) {
+      document.documentElement.style.setProperty('--background', `${color === 'green' ? '156' : color === 'blue' ? '210' : color === 'purple' ? '270' : color === 'brown' ? '30' : color === 'teal' ? '180' : '240'} 47% 5%`);
+      document.documentElement.style.setProperty('--card', `${color === 'green' ? '156' : color === 'blue' ? '210' : color === 'purple' ? '270' : color === 'brown' ? '30' : color === 'teal' ? '180' : '240'} 47% 10%`);
+      document.documentElement.style.setProperty('--popover', `${color === 'green' ? '156' : color === 'blue' ? '210' : color === 'purple' ? '270' : color === 'brown' ? '30' : color === 'teal' ? '180' : '240'} 47% 10%`);
+    }
   };
 
   const setTheme = (newTheme: Theme) => {

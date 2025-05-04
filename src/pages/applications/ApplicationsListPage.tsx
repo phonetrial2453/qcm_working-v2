@@ -1,7 +1,6 @@
 
 import React, { useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { ApplicationsHeader } from '@/components/applications/ApplicationsHeader';
 import { ApplicationsFilter } from '@/components/applications/ApplicationsFilter';
 import { ApplicationsTable } from '@/components/applications/ApplicationsTable';
 import { StatusUpdateDialog } from '@/components/applications/StatusUpdateDialog';
@@ -46,15 +45,13 @@ const ApplicationsListPage: React.FC = () => {
   return (
     <AppLayout>
       <div className="container mx-auto">
-        <ApplicationsHeader 
-          applicationsCount={filteredApplications.length}
-          onExport={handleExportCSV}
-        />
-        
-        <ExportButtons 
-          onExportCSV={handleExportCSV}
-          onExportImage={handleExportImage}
-        />
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Applications ({filteredApplications.length})</h1>
+          <ExportButtons 
+            onExportCSV={handleExportCSV}
+            onExportImage={handleExportImage}
+          />
+        </div>
         
         <ApplicationsFilter
           searchTerm={searchTerm}

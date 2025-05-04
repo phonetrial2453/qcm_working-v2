@@ -2,7 +2,7 @@
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileText } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { Application } from '@/types/application';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -27,6 +27,8 @@ const ApplicationPDFExport: React.FC<ApplicationPDFExportProps> = ({ application
         scale: 2,
         logging: false,
         backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: true,
       });
       
       const imgWidth = 210; // A4 width in mm
@@ -34,7 +36,6 @@ const ApplicationPDFExport: React.FC<ApplicationPDFExportProps> = ({ application
       const imgHeight = canvas.height * imgWidth / canvas.width;
       
       const pdf = new jsPDF('p', 'mm', 'a4');
-      pdf.setFillColor(255, 255, 255);
       
       // Add title
       pdf.setFontSize(16);
@@ -44,21 +45,42 @@ const ApplicationPDFExport: React.FC<ApplicationPDFExportProps> = ({ application
       pdf.setFontSize(10);
       pdf.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 30);
       
+      // Split content into multiple pages if needed
+      let heightLeft = imgHeight;
+      let position = 40;
+      
+      // First page
       pdf.addImage(
-        canvas.toDataURL('image/png'),
-        'PNG',
+        canvas.toDataURL('image/jpeg', 0.95),
+        'JPEG',
         10,
-        40,
+        position,
         imgWidth - 20,
-        imgHeight - 20
+        imgHeight
       );
+      heightLeft -= (pageHeight - position);
+      
+      // Additional pages if content overflows
+      while (heightLeft >= 0) {
+        position = 0;
+        pdf.addPage();
+        pdf.addImage(
+          canvas.toDataURL('image/jpeg', 0.95),
+          'JPEG',
+          10,
+          position - (pageHeight - 40),
+          imgWidth - 20,
+          imgHeight
+        );
+        heightLeft -= pageHeight;
+      }
       
       pdf.save(`application-${application.id}.pdf`);
       toast.success("PDF downloaded successfully");
       
     } catch (error) {
       console.error("PDF generation error:", error);
-      toast.error("Failed to generate PDF");
+      toast.error("Failed to generate PDF. Try again or contact support.");
     }
   };
   
@@ -137,7 +159,7 @@ const ApplicationPDFExport: React.FC<ApplicationPDFExportProps> = ({ application
           {application.remarks && (
             <div className="mb-4">
               <h2 className="text-lg font-semibold mb-2">Remarks</h2>
-              <p className="pl-4">{application.remarks}</p>
+              <p className="pl-4 whitespace-pre-line">{application.remarks}</p>
             </div>
           )}
           

@@ -13,21 +13,6 @@ export const applicationSchema = z.object({
     age: z.number().min(13, { message: "Age must be at least 13" }).optional(),
     qualification: z.string().optional(),
     profession: z.string().optional(),
-  }).refine(data => {
-    // If email exists, ensure it's a valid email format
-    if (data.email) {
-      try {
-        const emailSchema = z.string().email();
-        emailSchema.parse(data.email);
-        return true;
-      } catch {
-        return false;
-      }
-    }
-    return true;
-  }, {
-    message: "Email must be a valid email address",
-    path: ["email"],
   }),
   currentResidence: z.object({
     area: z.string().optional(),
@@ -123,7 +108,7 @@ export const parseApplicationText = (text: string) => {
           // Special case for email - ensure proper format
           else if (key === 'email' || key.toLowerCase().includes('email')) {
             const emailValue = value.trim();
-            parsedData[currentSection][key] = emailValue;
+            parsedData.otherDetails.email = emailValue; // Always store email in otherDetails
           } 
           else {
             parsedData[currentSection][key] = value;
@@ -136,6 +121,15 @@ export const parseApplicationText = (text: string) => {
     if (parsedData.studentDetails.name && !parsedData.studentDetails.fullName) {
       parsedData.studentDetails.fullName = parsedData.studentDetails.name;
       delete parsedData.studentDetails.name;
+    }
+    
+    // Check for email in any section and move it to otherDetails
+    for (const section of ['studentDetails', 'hometownDetails', 'currentResidence', 'referredBy']) {
+      if (parsedData[section].email || parsedData[section].emailAddress) {
+        parsedData.otherDetails.email = parsedData[section].email || parsedData[section].emailAddress;
+        delete parsedData[section].email;
+        delete parsedData[section].emailAddress;
+      }
     }
     
     return parsedData;

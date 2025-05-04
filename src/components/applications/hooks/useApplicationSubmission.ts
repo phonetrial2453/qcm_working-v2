@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useApplications } from '@/contexts/ApplicationContext';
-import { supabase } from '@/integrations/supabase/client';
 import { ValidationError } from '@/types/application';
 
 export const useApplicationSubmission = () => {
@@ -38,6 +37,9 @@ export const useApplicationSubmission = () => {
         ...parsedData,
         classCode: selectedClassCode,
         validationWarnings: warnings.length > 0 ? warnings : undefined,
+        remarks: warnings.length > 0 ? 
+          `Application submitted with ${warnings.length} validation warning(s):\n${warnings.map(w => `- ${w.field}: ${w.message}`).join('\n')}` :
+          parsedData.remarks || ''
       };
 
       const applicationId = await createApplication(applicationData);
