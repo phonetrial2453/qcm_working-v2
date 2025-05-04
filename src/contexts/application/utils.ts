@@ -19,9 +19,9 @@ export const formatApplicationForDisplay = (app: Application) => {
 
   return {
     id: app.id,
-    name: studentDetails.fullName || 'N/A',
-    phone: studentDetails.mobile || 'N/A',
-    email: otherDetails.email || 'N/A',
+    name: (studentDetails as { fullName?: string }).fullName || 'N/A',
+    phone: (studentDetails as { mobile?: string }).mobile || 'N/A',
+    email: (otherDetails as { email?: string }).email || 'N/A',
     class: app.classCode,
     status: app.status,
     createdAt: app.createdAt,
