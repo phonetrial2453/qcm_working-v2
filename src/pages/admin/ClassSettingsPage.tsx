@@ -21,7 +21,8 @@ import {
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { Class } from '@/types/supabase-types';
+import { Class, ValidationRules } from '@/types/supabase-types';
+import { Json } from '@/integrations/supabase/types';
 
 const formSchema = z.object({
   code: z.string().min(4, {
@@ -64,6 +65,38 @@ const ClassSettingsPage: React.FC = () => {
     },
   });
 
+  // Function to safely convert Json to ValidationRules
+  const safelyParseValidationRules = (rules: Json | null): ValidationRules => {
+    if (!rules) {
+      return {
+        ageRange: { min: undefined, max: undefined },
+        allowedStates: [],
+        minimumQualification: ''
+      };
+    }
+    
+    // Ensure we have an object
+    if (typeof rules !== 'object' || rules === null) {
+      return {
+        ageRange: { min: undefined, max: undefined },
+        allowedStates: [],
+        minimumQualification: ''
+      };
+    }
+    
+    // Cast to any first to help with type checking
+    const rulesObj = rules as any;
+    
+    return {
+      ageRange: {
+        min: typeof rulesObj.ageRange?.min === 'number' ? rulesObj.ageRange.min : undefined,
+        max: typeof rulesObj.ageRange?.max === 'number' ? rulesObj.ageRange.max : undefined
+      },
+      allowedStates: Array.isArray(rulesObj.allowedStates) ? rulesObj.allowedStates : [],
+      minimumQualification: typeof rulesObj.minimumQualification === 'string' ? rulesObj.minimumQualification : ''
+    };
+  };
+
   useEffect(() => {
     const fetchClass = async () => {
       setLoading(true);
@@ -87,14 +120,16 @@ const ClassSettingsPage: React.FC = () => {
           }
           
           if (data) {
-            // Map database fields to our expected format
+            // Map database fields to our expected format with proper type handling
             classData = {
-              ...data,
-              validationRules: data.validation_rules || {
-                ageRange: { min: undefined, max: undefined },
-                allowedStates: [],
-                minimumQualification: '',
-              }
+              id: data.id,
+              code: data.code,
+              name: data.name,
+              description: data.description || '',
+              validationRules: safelyParseValidationRules(data.validation_rules),
+              template: data.template || '',
+              created_at: data.created_at,
+              updated_at: data.updated_at
             };
           } else {
             toast.error('Class not found');
