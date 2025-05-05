@@ -21,6 +21,7 @@ import {
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Class } from '@/types/supabase-types';
 
 const formSchema = z.object({
   code: z.string().min(4, {
@@ -86,7 +87,15 @@ const ClassSettingsPage: React.FC = () => {
           }
           
           if (data) {
-            classData = data;
+            // Map database fields to our expected format
+            classData = {
+              ...data,
+              validationRules: data.validation_rules || {
+                ageRange: { min: undefined, max: undefined },
+                allowedStates: [],
+                minimumQualification: '',
+              }
+            };
           } else {
             toast.error('Class not found');
             navigate('/admin/classes');
@@ -100,7 +109,7 @@ const ClassSettingsPage: React.FC = () => {
             code: classData.code,
             name: classData.name,
             description: classData.description || '',
-            validationRules: classData.validation_rules || {
+            validationRules: classData.validationRules || {
               ageRange: { min: undefined, max: undefined },
               allowedStates: [],
               minimumQualification: '',
