@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useApplications } from '@/contexts/ApplicationContext';
 import { ValidationError } from '@/types/application';
-import { generateApplicationId } from '@/utils/applicationIdGenerator';
+import { generateSimpleApplicationId } from '@/utils/applicationIdGenerator';
 
 export const useApplicationSubmission = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,8 +33,9 @@ export const useApplicationSubmission = () => {
     setIsSubmitting(true);
 
     try {
-      // Generate a unique ID for the application
-      const applicationId = generateApplicationId();
+      // Generate a unique ID for the application using the correct function
+      // Use class code and a sequential number (for now using 0 as we don't have a count yet)
+      const applicationId = generateSimpleApplicationId(selectedClassCode, 0);
       
       // Add class code and detailed validation warnings to parsed data
       const applicationData = {
