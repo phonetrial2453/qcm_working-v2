@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useApplications } from '@/contexts/ApplicationContext';
 import { ValidationError } from '@/types/application';
+import { generateApplicationId } from '@/utils/applicationIdGenerator';
 
 export const useApplicationSubmission = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,9 +33,13 @@ export const useApplicationSubmission = () => {
     setIsSubmitting(true);
 
     try {
+      // Generate a unique ID for the application
+      const applicationId = generateApplicationId();
+      
       // Add class code and detailed validation warnings to parsed data
       const applicationData = {
         ...parsedData,
+        id: applicationId,
         classCode: selectedClassCode,
         validationWarnings: warnings.length > 0 ? warnings : undefined,
       };
@@ -47,9 +52,11 @@ export const useApplicationSubmission = () => {
           : `Application submitted with validation warnings:\n${warningDetails}`;
       }
 
-      const applicationId = await createApplication(applicationData);
+      console.log("Submitting application data:", applicationData);
+      
+      const result = await createApplication(applicationData);
 
-      if (applicationId) {
+      if (result) {
         let message = 'Application submitted successfully!';
         
         if (warnings.length > 0) {

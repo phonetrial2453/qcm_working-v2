@@ -58,6 +58,8 @@ export async function fetchClassesService() {
 
 export async function createApplicationService(applicationData: Partial<Application>, userId?: string): Promise<string | null> {
   try {
+    console.log("Creating application with data:", applicationData);
+    
     const { data, error } = await supabase
       .from('applications')
       .insert([

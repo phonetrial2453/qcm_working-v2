@@ -23,8 +23,8 @@ export const ApplicationsHeader: React.FC<ApplicationsHeaderProps> = ({
       </div>
       
       <div className="flex gap-2">
-        <Button asChild className="bg-islamic-primary hover:bg-islamic-primary/90">
-          <Link to="/applications/new">
+        <Button className="bg-islamic-primary hover:bg-islamic-primary/90">
+          <Link to="/applications/new" className="flex items-center">
             <PlusCircle className="h-4 w-4 mr-2" />
             New Application
           </Link>

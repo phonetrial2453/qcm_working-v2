@@ -10,7 +10,7 @@ const NewApplicationPage: React.FC = () => {
   const navigate = useNavigate();
   
   return (
-    <AppLayout requireAuth={true} moderatorOrAdmin={true}>
+    <AppLayout requireAuth={true}>
       <div className="container mx-auto py-8">
         <div className="flex justify-between items-center mb-6">
           <Button

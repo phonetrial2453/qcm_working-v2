@@ -55,13 +55,23 @@ const NewApplicationForm: React.FC = () => {
       setParsedData(null);
       setValidationResult({ valid: false, warnings: [] });
     }
-  }, [applicationText]);
+  }, [applicationText, validateApplication]);
 
   const handleClassChange = (value: string) => {
     setSelectedClassCode(value);
   };
 
   const handleSubmitWrapper = async () => {
+    if (!selectedClassCode) {
+      toast.error('Please select a class');
+      return;
+    }
+
+    if (!parsedData) {
+      toast.error('Invalid application data');
+      return;
+    }
+
     await handleSubmit({
       parsedData,
       selectedClassCode,
@@ -89,6 +99,10 @@ const NewApplicationForm: React.FC = () => {
     }
   };
 
+  console.log("Accessible classes:", accessibleClasses);
+  console.log("Selected class code:", selectedClassCode);
+  console.log("Application text length:", applicationText.length);
+
   return (
     <div className="space-y-6">
       <Card>
@@ -106,7 +120,7 @@ const NewApplicationForm: React.FC = () => {
                 <SelectValue placeholder="Select a class" />
               </SelectTrigger>
               <SelectContent>
-                {accessibleClasses.map((classItem) => (
+                {classes.map((classItem) => (
                   <SelectItem key={classItem.code} value={classItem.code}>
                     {classItem.name}
                   </SelectItem>
