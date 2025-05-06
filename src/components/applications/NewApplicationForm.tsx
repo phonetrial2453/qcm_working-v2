@@ -15,6 +15,9 @@ import { useApplicationSubmission } from "./hooks/useApplicationSubmission";
 import ApplicationPreview from "./ApplicationPreview";
 import { useAuth } from '@/contexts/AuthContext';
 
+// Form data key for localStorage
+const FORM_DATA_KEY = 'application_form_data';
+
 const NewApplicationForm: React.FC = () => {
   const { classes } = useApplications();
   const { user, isAdmin } = useAuth();
@@ -31,6 +34,37 @@ const NewApplicationForm: React.FC = () => {
   const accessibleClasses = isAdmin 
     ? classes 
     : classes.filter(cls => user?.classes?.includes(cls.code));
+
+  // Load saved form data from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedFormData = localStorage.getItem(FORM_DATA_KEY);
+      if (savedFormData) {
+        const { classCode, text } = JSON.parse(savedFormData);
+        if (classCode) setSelectedClassCode(classCode);
+        if (text) setApplicationText(text);
+      }
+    } catch (error) {
+      console.error('Error loading saved form data:', error);
+    }
+  }, []);
+
+  // Save form data to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      if (selectedClassCode || applicationText) {
+        localStorage.setItem(
+          FORM_DATA_KEY,
+          JSON.stringify({
+            classCode: selectedClassCode,
+            text: applicationText
+          })
+        );
+      }
+    } catch (error) {
+      console.error('Error saving form data:', error);
+    }
+  }, [selectedClassCode, applicationText]);
 
   useEffect(() => {
     if (selectedClassCode) {
@@ -77,6 +111,11 @@ const NewApplicationForm: React.FC = () => {
       selectedClassCode,
       warnings: validationResult.warnings,
     });
+    
+    // Clear saved form data after successful submission
+    if (!isSubmitting) {
+      localStorage.removeItem(FORM_DATA_KEY);
+    }
   };
 
   const handleCopyTemplate = () => {

@@ -30,9 +30,9 @@ export const useApplicationSubmission = () => {
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
+      setIsSubmitting(true);
+      
       // Generate a unique ID for the application using the correct function
       // Use class code and a sequential number (for now using 0 as we don't have a count yet)
       const applicationId = generateSimpleApplicationId(selectedClassCode, 0);
@@ -66,6 +66,9 @@ export const useApplicationSubmission = () => {
         
         toast.success(message);
         navigate(`/applications/${applicationId}`);
+      } else {
+        // Handle failed submission
+        toast.error('Failed to submit application');
       }
     } catch (error) {
       console.error('Application submission error:', error);

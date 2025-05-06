@@ -32,8 +32,16 @@ const ApplicationPreview: React.FC<ApplicationPreviewProps> = ({
         <Button
           onClick={onSubmit}
           disabled={isSubmitting || !selectedClassCode || !parsedData}
+          className="px-6"
         >
-          {isSubmitting ? "Submitting..." : "Submit Application"}
+          {isSubmitting ? (
+            <>
+              <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+              Submitting...
+            </>
+          ) : (
+            "Submit Application"
+          )}
         </Button>
       </div>
     </div>
