@@ -56,7 +56,8 @@ function App() {
                 <Route path="/admin/moderators" element={<ModeratorManagementPage />} />
                 <Route path="/admin/reports" element={<ReportsPage />} />
                 <Route path="/admin/classes" element={<ClassesPage />} />
-                <Route path="/admin/classes/:id" element={<ClassSettingsPage />} />
+                <Route path="/admin/classes/edit/:classCode" element={<ClassSettingsPage />} />
+                <Route path="/admin/classes/new" element={<ClassSettingsPage />} />
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>

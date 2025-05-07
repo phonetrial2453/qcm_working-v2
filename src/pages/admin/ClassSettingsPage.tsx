@@ -8,6 +8,7 @@ import ClassFormLoader from '@/components/admin/ClassFormLoader';
 import ClassFormContainer from '@/components/admin/ClassFormContainer';
 
 const ClassSettingsPage: React.FC = () => {
+  // Changed from classCode to match the new route parameter name
   const { classCode } = useParams<{ classCode: string }>();
   const { classes, refreshClasses } = useApplications();
   

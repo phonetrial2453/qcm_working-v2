@@ -4,7 +4,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { ApplicationsFilter } from '@/components/applications/ApplicationsFilter';
 import { ApplicationsTable } from '@/components/applications/ApplicationsTable';
 import { StatusUpdateDialog } from '@/components/applications/StatusUpdateDialog';
-import { ExportButtons } from './components/ExportButtons';
+import { ApplicationsHeader } from '@/components/applications/ApplicationsHeader';
 import { useApplicationsList } from './hooks/useApplicationsList';
 import { useApplicationStatus } from './hooks/useApplicationStatus';
 import { exportToCSV, exportToImage, formatDate } from './utils/exportUtils';
@@ -45,13 +45,10 @@ const ApplicationsListPage: React.FC = () => {
   return (
     <AppLayout>
       <div className="container mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Applications ({filteredApplications.length})</h1>
-          <ExportButtons 
-            onExportCSV={handleExportCSV}
-            onExportImage={handleExportImage}
-          />
-        </div>
+        <ApplicationsHeader 
+          applicationsCount={filteredApplications.length}
+          onExport={handleExportCSV}
+        />
         
         <ApplicationsFilter
           searchTerm={searchTerm}
