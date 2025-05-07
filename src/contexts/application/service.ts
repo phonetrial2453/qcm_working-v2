@@ -60,23 +60,26 @@ export async function createApplicationService(applicationData: Partial<Applicat
   try {
     console.log("Creating application with data:", applicationData);
     
+    // Prepare data for Supabase format (snake_case)
+    const supabaseData = {
+      id: applicationData.id,
+      class_code: applicationData.classCode,
+      status: applicationData.status || 'pending',
+      student_details: applicationData.studentDetails || {},
+      other_details: applicationData.otherDetails || {},
+      hometown_details: applicationData.hometownDetails || {},
+      current_residence: applicationData.currentResidence || {},
+      referred_by: applicationData.referredBy || {},
+      remarks: applicationData.remarks,
+      validation_warnings: applicationData.validationWarnings || [],
+      user_id: userId || applicationData.user_id
+    };
+    
+    console.log("Formatted data for Supabase:", supabaseData);
+    
     const { data, error } = await supabase
       .from('applications')
-      .insert([
-        {
-          id: applicationData.id,
-          class_code: applicationData.classCode,
-          status: applicationData.status || 'pending',
-          student_details: applicationData.studentDetails || {},
-          other_details: applicationData.otherDetails || {},
-          hometown_details: applicationData.hometownDetails || {},
-          current_residence: applicationData.currentResidence || {},
-          referred_by: applicationData.referredBy || {},
-          remarks: applicationData.remarks,
-          validation_warnings: applicationData.validationWarnings || [],
-          user_id: userId
-        },
-      ])
+      .insert([supabaseData])
       .select('id')
       .single();
 
@@ -85,6 +88,7 @@ export async function createApplicationService(applicationData: Partial<Applicat
       return null;
     }
 
+    console.log("Successfully inserted application, received:", data);
     return data.id;
   } catch (err) {
     console.error('Error creating application:', err);

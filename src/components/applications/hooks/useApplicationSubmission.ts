@@ -5,11 +5,13 @@ import { toast } from 'sonner';
 import { useApplications } from '@/contexts/ApplicationContext';
 import { ValidationError } from '@/types/application';
 import { generateSimpleApplicationId } from '@/utils/applicationIdGenerator';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useApplicationSubmission = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { createApplication } = useApplications();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleSubmit = async ({
     parsedData,
@@ -22,17 +24,17 @@ export const useApplicationSubmission = () => {
   }) => {
     if (!selectedClassCode) {
       toast.error('Please select a class');
-      return;
+      return false;
     }
 
     if (!parsedData) {
       toast.error('Invalid application data');
-      return;
+      return false;
     }
 
     // Don't proceed if already submitting
     if (isSubmitting) {
-      return;
+      return false;
     }
 
     try {
@@ -48,7 +50,16 @@ export const useApplicationSubmission = () => {
         id: applicationId,
         classCode: selectedClassCode,
         validationWarnings: warnings.length > 0 ? warnings : undefined,
+        status: 'pending',
       };
+
+      // Add user_id if authenticated
+      if (user?.id) {
+        console.log(`Adding user ID ${user.id} to application`);
+        applicationData.user_id = user.id;
+      } else {
+        console.log('No user authenticated, submitting without user_id');
+      }
 
       // Add detailed remarks about warnings if any exist
       if (warnings.length > 0) {
@@ -58,7 +69,7 @@ export const useApplicationSubmission = () => {
           : `Application submitted with validation warnings:\n${warningDetails}`;
       }
 
-      console.log("Submitting application data:", applicationData);
+      console.log("Submitting application data:", JSON.stringify(applicationData, null, 2));
       
       const result = await createApplication(applicationData);
       console.log("Submission result:", result);
@@ -89,7 +100,7 @@ export const useApplicationSubmission = () => {
       }
     } catch (error) {
       console.error('Application submission error:', error);
-      toast.error('Failed to submit application');
+      toast.error(`Failed to submit application: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setIsSubmitting(false);
       return false;
     }

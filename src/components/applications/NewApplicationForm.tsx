@@ -96,6 +96,8 @@ const NewApplicationForm: React.FC = () => {
   };
 
   const handleSubmitWrapper = async () => {
+    console.log("Submit button clicked");
+    
     if (!selectedClassCode) {
       toast.error('Please select a class');
       return;
@@ -105,6 +107,10 @@ const NewApplicationForm: React.FC = () => {
       toast.error('Invalid application data');
       return;
     }
+    
+    console.log("Proceeding with submission...");
+    console.log("Selected class code:", selectedClassCode);
+    console.log("Validation warnings:", validationResult.warnings);
 
     const result = await handleSubmit({
       parsedData,
@@ -112,8 +118,13 @@ const NewApplicationForm: React.FC = () => {
       warnings: validationResult.warnings,
     });
     
-    // If submission was successful, the hook will handle navigation and toast messages
     console.log("Submission completed with result:", result);
+    
+    if (result) {
+      console.log("Submission was successful, navigation should occur automatically");
+    } else {
+      console.log("Submission failed, staying on current page");
+    }
   };
 
   const handleCopyTemplate = () => {
@@ -135,10 +146,6 @@ const NewApplicationForm: React.FC = () => {
       toast.error('Unable to paste from clipboard');
     }
   };
-
-  console.log("Accessible classes:", accessibleClasses);
-  console.log("Selected class code:", selectedClassCode);
-  console.log("Application text length:", applicationText.length);
 
   return (
     <div className="space-y-6">
