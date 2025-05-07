@@ -33,8 +33,7 @@ export const useApplicationSubmission = () => {
     try {
       setIsSubmitting(true);
       
-      // Generate a unique ID for the application using the correct function
-      // Use class code and a sequential number (for now using 0 as we don't have a count yet)
+      // Generate a unique ID for the application
       const applicationId = generateSimpleApplicationId(selectedClassCode, 0);
       
       // Add class code and detailed validation warnings to parsed data
@@ -65,15 +64,20 @@ export const useApplicationSubmission = () => {
         }
         
         toast.success(message);
+        
+        // Clear saved form data from localStorage
+        localStorage.removeItem('application_form_data');
+        
+        // Navigate to the application detail page
         navigate(`/applications/${applicationId}`);
       } else {
         // Handle failed submission
         toast.error('Failed to submit application');
+        setIsSubmitting(false);
       }
     } catch (error) {
       console.error('Application submission error:', error);
       toast.error('Failed to submit application');
-    } finally {
       setIsSubmitting(false);
     }
   };

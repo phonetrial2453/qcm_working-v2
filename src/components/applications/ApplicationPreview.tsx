@@ -3,6 +3,7 @@ import React from "react";
 import ValidationWarnings from "./ValidationWarnings";
 import PreviewFields from "./PreviewFields";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 interface ApplicationPreviewProps {
   parsedData: any;
@@ -36,7 +37,7 @@ const ApplicationPreview: React.FC<ApplicationPreviewProps> = ({
         >
           {isSubmitting ? (
             <>
-              <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Submitting...
             </>
           ) : (
