@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApplications } from '@/contexts/ApplicationContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -105,11 +106,14 @@ const NewApplicationForm: React.FC = () => {
       return;
     }
 
-    await handleSubmit({
+    const result = await handleSubmit({
       parsedData,
       selectedClassCode,
       warnings: validationResult.warnings,
     });
+    
+    // If submission was successful, the hook will handle navigation and toast messages
+    console.log("Submission completed with result:", result);
   };
 
   const handleCopyTemplate = () => {

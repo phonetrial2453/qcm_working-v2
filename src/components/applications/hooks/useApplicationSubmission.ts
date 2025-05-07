@@ -80,15 +80,18 @@ export const useApplicationSubmission = () => {
         
         // Navigate to the application detail page
         navigate(`/applications/${applicationId}`);
+        return true;
       } else {
         // Handle failed submission
         toast.error('Failed to submit application');
         setIsSubmitting(false);
+        return false;
       }
     } catch (error) {
       console.error('Application submission error:', error);
       toast.error('Failed to submit application');
       setIsSubmitting(false);
+      return false;
     }
   };
 
