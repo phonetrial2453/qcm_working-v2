@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApplications } from '@/contexts/ApplicationContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -111,11 +110,6 @@ const NewApplicationForm: React.FC = () => {
       selectedClassCode,
       warnings: validationResult.warnings,
     });
-    
-    // Clear saved form data after successful submission
-    if (!isSubmitting) {
-      localStorage.removeItem(FORM_DATA_KEY);
-    }
   };
 
   const handleCopyTemplate = () => {

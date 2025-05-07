@@ -30,8 +30,14 @@ export const useApplicationSubmission = () => {
       return;
     }
 
+    // Don't proceed if already submitting
+    if (isSubmitting) {
+      return;
+    }
+
     try {
       setIsSubmitting(true);
+      console.log("Starting application submission process");
       
       // Generate a unique ID for the application
       const applicationId = generateSimpleApplicationId(selectedClassCode, 0);
@@ -55,6 +61,7 @@ export const useApplicationSubmission = () => {
       console.log("Submitting application data:", applicationData);
       
       const result = await createApplication(applicationData);
+      console.log("Submission result:", result);
 
       if (result) {
         let message = 'Application submitted successfully!';
@@ -63,10 +70,13 @@ export const useApplicationSubmission = () => {
           message = `Application submitted with ${warnings.length} validation warning(s)`;
         }
         
-        toast.success(message);
-        
         // Clear saved form data from localStorage
         localStorage.removeItem('application_form_data');
+        
+        toast.success(message);
+        
+        // Reset submission state before navigating
+        setIsSubmitting(false);
         
         // Navigate to the application detail page
         navigate(`/applications/${applicationId}`);
