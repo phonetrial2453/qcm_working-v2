@@ -110,6 +110,7 @@ const NewApplicationForm: React.FC = () => {
     
     console.log("Proceeding with submission...");
     console.log("Selected class code:", selectedClassCode);
+    console.log("Current user:", user);
     console.log("Validation warnings:", validationResult.warnings);
 
     const result = await handleSubmit({

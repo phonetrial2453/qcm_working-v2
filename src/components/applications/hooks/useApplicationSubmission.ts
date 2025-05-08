@@ -53,25 +53,10 @@ export const useApplicationSubmission = () => {
         status: 'pending',
       };
 
-      // Add user_id if authenticated
-      if (user?.id) {
-        console.log(`Adding user ID ${user.id} to application`);
-        applicationData.user_id = user.id;
-      } else {
-        console.log('No user authenticated, submitting without user_id');
-      }
-
-      // Add detailed remarks about warnings if any exist
-      if (warnings.length > 0) {
-        const warningDetails = warnings.map(w => `- ${w.field}: ${w.message}`).join('\n');
-        applicationData.remarks = parsedData.remarks 
-          ? `${parsedData.remarks}\n\n---\nValidation Warnings:\n${warningDetails}`
-          : `Application submitted with validation warnings:\n${warningDetails}`;
-      }
-
-      console.log("Submitting application data:", JSON.stringify(applicationData, null, 2));
+      console.log("Application data being submitted:", JSON.stringify(applicationData, null, 2));
       
-      const result = await createApplication(applicationData);
+      // Create application with explicit user ID parameter
+      const result = await createApplication(applicationData, user?.id);
       console.log("Submission result:", result);
 
       if (result) {

@@ -59,6 +59,7 @@ export async function fetchClassesService() {
 export async function createApplicationService(applicationData: Partial<Application>, userId?: string): Promise<string | null> {
   try {
     console.log("Creating application with data:", applicationData);
+    console.log("User ID for application:", userId);
     
     // Prepare data for Supabase format (snake_case)
     const supabaseData = {

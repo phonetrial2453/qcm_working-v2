@@ -9,7 +9,7 @@ export interface ApplicationContextType {
   error: string | null;
   fetchApplications: () => Promise<void>;
   refreshClasses: () => Promise<void>;
-  createApplication: (applicationData: Partial<Application>) => Promise<string | null>;
+  createApplication: (applicationData: Partial<Application>, userId?: string) => Promise<string | null>;
   updateApplication: (applicationId: string, applicationData: Partial<Application>) => Promise<string | null>;
   deleteApplication: (applicationId: string) => Promise<void>;
   formatApplicationForDisplay: (app: Application) => any;

@@ -69,4 +69,5 @@ export interface Application {
   createdAt: string;
   updatedAt: string;
   validationWarnings?: ValidationError[];
+  user_id?: string;
 }

@@ -44,9 +44,10 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     return applications.find(app => app.id === id);
   };
 
-  const createApplication = async (applicationData: Partial<Application>): Promise<string | null> => {
+  const createApplication = async (applicationData: Partial<Application>, userId?: string): Promise<string | null> => {
     try {
-      const applicationId = await createApplicationService(applicationData, user?.id);
+      console.log("ApplicationProvider: Creating application with user ID:", userId);
+      const applicationId = await createApplicationService(applicationData, userId);
       if (applicationId) {
         await fetchApplications();
       }

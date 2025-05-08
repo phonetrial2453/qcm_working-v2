@@ -1,8 +1,7 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ValidationResult } from "@/types/application";
-import { useApplications } from "@/contexts/ApplicationContext";
 
 export const useApplicationValidation = (
   selectedClassCode: string,
@@ -10,7 +9,7 @@ export const useApplicationValidation = (
 ) => {
   const [validationResult, setValidationResult] = useState<ValidationResult>({ valid: false, warnings: [] });
 
-  const validateApplication = async (data: any) => {
+  const validateApplication = useCallback(async (data: any) => {
     const warnings: { field: string; message: string }[] = [];
 
     const requiredFields = [
@@ -77,6 +76,7 @@ export const useApplicationValidation = (
         }
       }
 
+      // Check for duplicate applications - handle network errors gracefully
       if (data.studentDetails?.fullName && data.studentDetails?.mobile) {
         try {
           const { data: existingApps, error } = await supabase
@@ -85,24 +85,36 @@ export const useApplicationValidation = (
             .eq('class_code', selectedClassCode)
             .not('status', 'eq', 'rejected');
 
-          if (error) throw error;
-
-          const duplicates = existingApps.filter((app: any) => {
-            const studentDetails = app.student_details as any;
-            return (
-              studentDetails?.fullName?.toLowerCase() === data.studentDetails.fullName.toLowerCase() &&
-              studentDetails?.mobile === data.studentDetails.mobile
-            );
-          });
-
-          if (duplicates.length > 0) {
+          if (error) {
+            console.error('Error checking for duplicates:', error);
+            // Don't block validation if we can't check for duplicates
             warnings.push({
-              field: 'Duplicate Application',
-              message: 'An application with this name and mobile number already exists'
+              field: 'Validation Warning',
+              message: 'Could not check for duplicate applications'
             });
+          } else if (existingApps) {
+            const duplicates = existingApps.filter((app: any) => {
+              const studentDetails = app.student_details as any;
+              return (
+                studentDetails?.fullName?.toLowerCase() === data.studentDetails.fullName.toLowerCase() &&
+                studentDetails?.mobile === data.studentDetails.mobile
+              );
+            });
+
+            if (duplicates.length > 0) {
+              warnings.push({
+                field: 'Duplicate Application',
+                message: 'An application with this name and mobile number already exists'
+              });
+            }
           }
         } catch (error) {
           console.error('Error checking for duplicates:', error);
+          // Add a warning but don't block submission
+          warnings.push({
+            field: 'Validation Warning', 
+            message: 'Could not check for duplicate applications due to network error'
+          });
         }
       }
     }
@@ -111,7 +123,7 @@ export const useApplicationValidation = (
       valid: warnings.length === 0,
       warnings
     });
-  };
+  }, [selectedClassCode, classes]);
 
   const getNestedValue = (obj: any, path: string) => {
     return path.split('.').reduce((prev, curr) => {
