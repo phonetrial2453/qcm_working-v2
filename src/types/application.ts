@@ -68,6 +68,5 @@ export interface Application {
   naqeebResponse?: string;
   createdAt: string;
   updatedAt: string;
-  validationWarnings?: ValidationError[];
   user_id?: string;
 }

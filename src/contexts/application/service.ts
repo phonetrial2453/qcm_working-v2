@@ -61,7 +61,7 @@ export async function createApplicationService(applicationData: Partial<Applicat
     console.log("Creating application with data:", applicationData);
     console.log("User ID for application:", userId);
     
-    // Prepare data for Supabase format (snake_case)
+    // Prepare data for Supabase format (snake_case) - removed validation_warnings field
     const supabaseData = {
       id: applicationData.id,
       class_code: applicationData.classCode,
@@ -72,7 +72,6 @@ export async function createApplicationService(applicationData: Partial<Applicat
       current_residence: applicationData.currentResidence || {},
       referred_by: applicationData.referredBy || {},
       remarks: applicationData.remarks,
-      validation_warnings: applicationData.validationWarnings || [],
       // Use the userId parameter instead of trying to access it from applicationData
       user_id: userId || null
     };
@@ -110,7 +109,6 @@ export async function updateApplicationService(applicationId: string, applicatio
     if (applicationData.currentResidence) updates.current_residence = applicationData.currentResidence;
     if (applicationData.referredBy) updates.referred_by = applicationData.referredBy;
     if (applicationData.remarks !== undefined) updates.remarks = applicationData.remarks;
-    if (applicationData.validationWarnings) updates.validation_warnings = applicationData.validationWarnings;
     
     const { data, error } = await supabase
       .from('applications')

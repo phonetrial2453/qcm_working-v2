@@ -36,13 +36,6 @@ export const transformApplicationData = (app: any): Application => {
   const currentResidence = app.current_residence as { [key: string]: any } || {};
   const referredBy = app.referred_by as { [key: string]: any } || {};
   
-  // Handle validation warnings with proper type checking
-  let validationWarnings: ValidationError[] = [];
-  if (app.validation_warnings) {
-    // Make sure validation_warnings exists and is an array
-    validationWarnings = app.validation_warnings as ValidationError[] || [];
-  }
-
   return {
     id: app.id,
     classCode: app.class_code,
@@ -89,7 +82,6 @@ export const transformApplicationData = (app: any): Application => {
     studentCategory: app.student_category,
     followUpBy: app.followup_by,
     naqeeb: app.naqeeb,
-    naqeebResponse: app.naqeeb_response,
-    validationWarnings: validationWarnings
+    naqeebResponse: app.naqeeb_response
   };
 };

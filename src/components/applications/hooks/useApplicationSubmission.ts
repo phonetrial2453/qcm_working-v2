@@ -44,12 +44,11 @@ export const useApplicationSubmission = () => {
       // Generate a unique ID for the application
       const applicationId = generateSimpleApplicationId(selectedClassCode, 0);
       
-      // Add class code and detailed validation warnings to parsed data
+      // Add class code but don't include validation warnings since that column doesn't exist
       const applicationData = {
         ...parsedData,
         id: applicationId,
         classCode: selectedClassCode,
-        validationWarnings: warnings.length > 0 ? warnings : undefined,
         status: 'pending',
       };
 
