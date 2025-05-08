@@ -72,7 +72,8 @@ export async function createApplicationService(applicationData: Partial<Applicat
       referred_by: applicationData.referredBy || {},
       remarks: applicationData.remarks,
       validation_warnings: applicationData.validationWarnings || [],
-      user_id: userId || applicationData.user_id
+      // Use the userId parameter instead of trying to access it from applicationData
+      user_id: userId || null
     };
     
     console.log("Formatted data for Supabase:", supabaseData);
