@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from '../AuthContext';
 import { Application } from '@/types/application';
@@ -47,14 +46,22 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   const createApplication = async (applicationData: Partial<Application>, userId?: string): Promise<string | null> => {
     try {
       console.log("ApplicationProvider: Creating application with user ID:", userId);
+      
+      // Make sure we have the latest applications before creating a new one
+      await fetchApplications();
+      
       const applicationId = await createApplicationService(applicationData, userId);
       if (applicationId) {
+        // Refresh the applications list after successful creation
         await fetchApplications();
+        return applicationId;
+      } else {
+        setError('Failed to create application - ID might already exist');
+        return null;
       }
-      return applicationId;
     } catch (err) {
       console.error('Error creating application:', err);
-      setError('Failed to create application');
+      setError(`Failed to create application: ${err instanceof Error ? err.message : 'Unknown error'}`);
       return null;
     }
   };

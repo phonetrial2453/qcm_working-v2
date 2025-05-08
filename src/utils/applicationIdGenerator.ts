@@ -1,22 +1,36 @@
+
 /**
- * Generates a simple application ID using the class code and a sequential number
- * @param classCode The class code (e.g., "NRTH02")
- * @param currentCount The current count of applications for this class
- * @returns A formatted application ID (e.g., "NRTH02-1032")
+ * Generates a simple application ID based on class code and a suffix
+ * @param classCode The class code prefix for the ID
+ * @param suffix Numeric suffix for the ID
+ * @returns A formatted application ID
  */
-export const generateSimpleApplicationId = (classCode: string, currentCount: number): string => {
-  const formattedCode = classCode.toUpperCase();
-  const sequentialNumber = (currentCount + 1).toString().padStart(4, '0');
-  return `${formattedCode}-${sequentialNumber}`;
+export const generateSimpleApplicationId = (classCode: string, suffix: number): string => {
+  return `${classCode}-${suffix.toString().padStart(4, '0')}`;
 };
 
 /**
- * Extracts the class code from an application ID
- * @param applicationId The application ID (e.g., "NRTH02-1032")
- * @returns The class code (e.g., "NRTH02")
+ * Generates a unique application ID by checking existing IDs and finding the next available number
+ * @param classCode The class code prefix for the ID
+ * @param existingIds An array of existing application IDs to avoid duplicates
+ * @returns A unique application ID
  */
-export const extractClassCodeFromId = (applicationId: string): string => {
-  // Assuming the format is always [CLASS_CODE][4-DIGIT_NUMBER]
-  // This will extract everything except the last 4 characters
-  return applicationId.slice(0, -4).toUpperCase();
+export const generateUniqueApplicationId = (classCode: string, existingIds: string[] = []): string => {
+  // Find the highest suffix for this class code
+  let maxSuffix = 0;
+  
+  existingIds
+    .filter(id => id.startsWith(classCode))
+    .forEach(id => {
+      const parts = id.split('-');
+      if (parts.length === 2) {
+        const suffix = parseInt(parts[1], 10);
+        if (!isNaN(suffix) && suffix > maxSuffix) {
+          maxSuffix = suffix;
+        }
+      }
+    });
+  
+  // Generate a new ID with the next available suffix
+  return generateSimpleApplicationId(classCode, maxSuffix + 1);
 };

@@ -61,7 +61,21 @@ export async function createApplicationService(applicationData: Partial<Applicat
     console.log("Creating application with data:", applicationData);
     console.log("User ID for application:", userId);
     
-    // Prepare data for Supabase format (snake_case) - removed validation_warnings field
+    // First check if an application with this ID already exists
+    if (applicationData.id) {
+      const { data: existingApp } = await supabase
+        .from('applications')
+        .select('id')
+        .eq('id', applicationData.id)
+        .single();
+        
+      if (existingApp) {
+        console.error('Application with this ID already exists:', applicationData.id);
+        return null;
+      }
+    }
+    
+    // Prepare data for Supabase format (snake_case)
     const supabaseData = {
       id: applicationData.id,
       class_code: applicationData.classCode,

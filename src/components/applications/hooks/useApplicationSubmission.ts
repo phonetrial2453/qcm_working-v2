@@ -4,12 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useApplications } from '@/contexts/ApplicationContext';
 import { ValidationError } from '@/types/application';
-import { generateSimpleApplicationId } from '@/utils/applicationIdGenerator';
+import { generateUniqueApplicationId } from '@/utils/applicationIdGenerator';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const useApplicationSubmission = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { createApplication } = useApplications();
+  const { createApplication, applications } = useApplications();
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -41,8 +41,11 @@ export const useApplicationSubmission = () => {
       setIsSubmitting(true);
       console.log("Starting application submission process");
       
+      // Get existing application IDs
+      const existingIds = applications.map(app => app.id);
+      
       // Generate a unique ID for the application
-      const applicationId = generateSimpleApplicationId(selectedClassCode, 0);
+      const applicationId = generateUniqueApplicationId(selectedClassCode, existingIds);
       
       // Add class code but don't include validation warnings since that column doesn't exist
       const applicationData = {
