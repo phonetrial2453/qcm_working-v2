@@ -270,17 +270,7 @@ ${application.remarks ? `Remarks: ${application.remarks}` : ''}
               </div>
             )}
             
-            {/* Show validation warnings if they exist */}
-            {application.validationWarnings && application.validationWarnings.length > 0 && (
-              <div className="mb-4 p-3 bg-amber-50 border border-amber-300 rounded-md">
-                <h3 className="font-medium mb-1 text-amber-800">Validation Warnings</h3>
-                <ul className="text-sm text-amber-700 space-y-1">
-                  {application.validationWarnings.map((warning, index) => (
-                    <li key={index}>• {warning.field}: {warning.message}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {/* Removed validation warnings section as it's no longer in the Application type */}
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
