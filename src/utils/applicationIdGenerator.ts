@@ -20,11 +20,13 @@ export const generateUniqueApplicationId = (classCode: string, existingIds: stri
   let maxSuffix = 0;
   
   existingIds
-    .filter(id => id.startsWith(classCode))
+    .filter(id => id.startsWith(classCode + '-'))
     .forEach(id => {
+      // Extract the suffix part after the class code
       const parts = id.split('-');
-      if (parts.length === 2) {
-        const suffix = parseInt(parts[1], 10);
+      // Get the last part of the array as the suffix
+      if (parts.length >= 2) {
+        const suffix = parseInt(parts[parts.length - 1], 10);
         if (!isNaN(suffix) && suffix > maxSuffix) {
           maxSuffix = suffix;
         }
