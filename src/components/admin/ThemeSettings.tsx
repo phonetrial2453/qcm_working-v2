@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Moon, Sun, Palette } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from 'sonner';
 
 const ThemeSettings: React.FC = () => {
   const { theme, themeColor, setTheme, setThemeColor } = useTheme();
@@ -18,6 +19,26 @@ const ThemeSettings: React.FC = () => {
     { id: 'teal', name: 'Teal', bgClass: 'bg-teal-700' },
     { id: 'indigo', name: 'Indigo', bgClass: 'bg-indigo-700' },
   ];
+  
+  const handleThemeChange = (newTheme: 'light' | 'dark') => {
+    try {
+      setTheme(newTheme);
+    } catch (error) {
+      toast.error(`Failed to change theme: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+  
+  const handleColorChange = (colorId: string) => {
+    try {
+      if (colorOptions.find(color => color.id === colorId)) {
+        setThemeColor(colorId as any);
+      } else {
+        toast.error(`Invalid theme color: ${colorId}`);
+      }
+    } catch (error) {
+      toast.error(`Failed to change theme color: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
 
   return (
     <Card>
@@ -41,7 +62,7 @@ const ThemeSettings: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <Button
                 variant={theme === 'light' ? 'default' : 'outline'}
-                onClick={() => setTheme('light')}
+                onClick={() => handleThemeChange('light')}
                 className="flex-1 flex flex-col items-center justify-center p-6 h-auto gap-2"
               >
                 <Sun className="h-6 w-6" />
@@ -50,7 +71,7 @@ const ThemeSettings: React.FC = () => {
               
               <Button
                 variant={theme === 'dark' ? 'default' : 'outline'}
-                onClick={() => setTheme('dark')}
+                onClick={() => handleThemeChange('dark')}
                 className="flex-1 flex flex-col items-center justify-center p-6 h-auto gap-2"
               >
                 <Moon className="h-6 w-6" />
@@ -65,7 +86,7 @@ const ThemeSettings: React.FC = () => {
                 <Button
                   key={color.id}
                   variant="outline"
-                  onClick={() => setThemeColor(color.id as any)}
+                  onClick={() => handleColorChange(color.id)}
                   className={`
                     relative flex flex-col items-center justify-center p-6 h-auto
                     ${themeColor === color.id ? 'ring-2 ring-primary' : ''}

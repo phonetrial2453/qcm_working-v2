@@ -15,9 +15,13 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+// Default theme and color values to prevent undefined errors
+const DEFAULT_THEME: Theme = 'light';
+const DEFAULT_THEME_COLOR: ThemeColor = 'green';
+
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<Theme>('light');
-  const [themeColor, setThemeColorState] = useState<ThemeColor>('green');
+  const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
+  const [themeColor, setThemeColorState] = useState<ThemeColor>(DEFAULT_THEME_COLOR);
   const [isInitializing, setIsInitializing] = useState(true);
 
   // Load preferences from localStorage and/or database
@@ -28,12 +32,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const storedTheme = localStorage.getItem('theme') as Theme;
         const storedColor = localStorage.getItem('themeColor') as ThemeColor;
         
-        if (storedTheme) {
+        if (storedTheme && (storedTheme === 'light' || storedTheme === 'dark')) {
           setThemeState(storedTheme);
           document.documentElement.classList.toggle('dark', storedTheme === 'dark');
         }
         
-        if (storedColor) {
+        // Validate theme color before applying it
+        if (storedColor && isValidThemeColor(storedColor)) {
           setThemeColorState(storedColor);
           document.documentElement.setAttribute('data-theme-color', storedColor);
         }
@@ -51,13 +56,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           if (settings) {
             const userPrefs = settings.value as { theme?: Theme; theme_color?: ThemeColor };
             
-            if (userPrefs.theme) {
+            if (userPrefs.theme && (userPrefs.theme === 'light' || userPrefs.theme === 'dark')) {
               setThemeState(userPrefs.theme);
               localStorage.setItem('theme', userPrefs.theme);
               document.documentElement.classList.toggle('dark', userPrefs.theme === 'dark');
             }
             
-            if (userPrefs.theme_color) {
+            if (userPrefs.theme_color && isValidThemeColor(userPrefs.theme_color)) {
               setThemeColorState(userPrefs.theme_color);
               localStorage.setItem('themeColor', userPrefs.theme_color);
               document.documentElement.setAttribute('data-theme-color', userPrefs.theme_color);
@@ -66,6 +71,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       } catch (error) {
         console.error('Failed to load theme preferences:', error);
+        // Apply defaults on error
+        setThemeState(DEFAULT_THEME);
+        setThemeColorState(DEFAULT_THEME_COLOR);
       } finally {
         setIsInitializing(false);
       }
@@ -73,6 +81,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     loadPreferences();
   }, []);
+
+  // Helper function to validate theme colors
+  const isValidThemeColor = (color: string): color is ThemeColor => {
+    return ['green', 'blue', 'purple', 'brown', 'teal', 'indigo'].includes(color);
+  };
 
   // Apply theme color variables whenever theme or color changes
   useEffect(() => {
@@ -82,6 +95,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const updateThemeColorVariables = (color: ThemeColor, currentTheme: Theme) => {
     const isDark = currentTheme === 'dark';
+    
+    // Ensure we have a valid color to prevent the TypeError
+    const safeColor = isValidThemeColor(color) ? color : DEFAULT_THEME_COLOR;
     
     // Color HSL values for each theme
     const colorValues = {
@@ -129,23 +145,46 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       },
     };
     
-    // Select the chosen color palette
-    const selectedColors = colorValues[color];
-    
-    // Apply the colors to CSS variables
-    document.documentElement.style.setProperty('--primary', selectedColors.primary);
-    document.documentElement.style.setProperty('--secondary', selectedColors.secondary);
-    document.documentElement.style.setProperty('--accent', selectedColors.accent);
-    document.documentElement.style.setProperty('--background', selectedColors.background);
-    document.documentElement.style.setProperty('--card', selectedColors.card);
-    document.documentElement.style.setProperty('--popover', selectedColors.card);
-    
-    // Update sidebar variables
-    document.documentElement.style.setProperty('--sidebar-background', selectedColors.primary);
-    document.documentElement.style.setProperty('--sidebar-primary', selectedColors.accent);
-    
-    // Set data attribute for global theme reference
-    document.documentElement.setAttribute('data-theme-color', color);
+    try {
+      // Select the chosen color palette with fallback
+      const selectedColors = colorValues[safeColor];
+      
+      if (!selectedColors) {
+        console.warn(`Theme color "${safeColor}" not found in color values. Using default theme.`);
+        return;
+      }
+      
+      // Apply the colors to CSS variables
+      document.documentElement.style.setProperty('--primary', selectedColors.primary);
+      document.documentElement.style.setProperty('--secondary', selectedColors.secondary);
+      document.documentElement.style.setProperty('--accent', selectedColors.accent);
+      document.documentElement.style.setProperty('--background', selectedColors.background);
+      document.documentElement.style.setProperty('--card', selectedColors.card);
+      document.documentElement.style.setProperty('--popover', selectedColors.card);
+      
+      // Update sidebar variables
+      document.documentElement.style.setProperty('--sidebar-background', selectedColors.primary);
+      document.documentElement.style.setProperty('--sidebar-primary', selectedColors.accent);
+      
+      // Set data attribute for global theme reference
+      document.documentElement.setAttribute('data-theme-color', safeColor);
+    } catch (error) {
+      console.error('Error applying theme color:', error);
+      // Apply default theme color on error
+      const defaultColors = colorValues[DEFAULT_THEME_COLOR];
+      
+      document.documentElement.style.setProperty('--primary', defaultColors.primary);
+      document.documentElement.style.setProperty('--secondary', defaultColors.secondary);
+      document.documentElement.style.setProperty('--accent', defaultColors.accent);
+      document.documentElement.style.setProperty('--background', defaultColors.background);
+      document.documentElement.style.setProperty('--card', defaultColors.card);
+      document.documentElement.style.setProperty('--popover', defaultColors.card);
+      
+      document.documentElement.style.setProperty('--sidebar-background', defaultColors.primary);
+      document.documentElement.style.setProperty('--sidebar-primary', defaultColors.accent);
+      
+      document.documentElement.setAttribute('data-theme-color', DEFAULT_THEME_COLOR);
+    }
   };
 
   // Save theme preference
@@ -167,6 +206,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Save color preference
   const setThemeColor = async (newColor: ThemeColor) => {
+    if (!isValidThemeColor(newColor)) {
+      console.warn(`Invalid theme color: ${newColor}. Using default.`);
+      newColor = DEFAULT_THEME_COLOR;
+    }
+    
     setThemeColorState(newColor);
     localStorage.setItem('themeColor', newColor);
     
