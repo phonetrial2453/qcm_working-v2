@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -406,7 +405,7 @@ const Dashboard: React.FC = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <BarChart className="mr-2 h-5 w-5" />
+                    <BarChart3 className="mr-2 h-5 w-5" />
                     Applications by Class
                   </CardTitle>
                   <CardDescription>
