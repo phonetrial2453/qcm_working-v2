@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, BookOpen, BarChart, School, Palette } from 'lucide-react';
+import { Users, School, Palette } from 'lucide-react';
 import ThemeSettings from '@/components/admin/ThemeSettings';
 
 const AdminDashboard = () => {
@@ -24,20 +24,6 @@ const AdminDashboard = () => {
       icon: <School className="h-8 w-8 text-islamic-primary mb-2" />,
       action: () => navigate("/admin/classes"),
       buttonText: "Manage Classes"
-    },
-    {
-      title: "Application Management",
-      description: "View, process, and manage student applications.",
-      icon: <BookOpen className="h-8 w-8 text-islamic-primary mb-2" />,
-      action: () => navigate("/applications"),
-      buttonText: "View Applications"
-    },
-    {
-      title: "Reports & Analytics",
-      description: "Generate reports and view analytics on applications and classes.",
-      icon: <BarChart className="h-8 w-8 text-islamic-primary mb-2" />,
-      action: () => navigate("/admin/reports"),
-      buttonText: "View Reports"
     }
   ];
 

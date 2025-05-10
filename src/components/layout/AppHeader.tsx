@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,14 +44,17 @@ const AppHeader: React.FC = () => {
               <Link to="/dashboard" className="text-white hover:text-islamic-accent transition-colors">
                 Dashboard
               </Link>
+              <Link to="/applications" className="text-white hover:text-islamic-accent transition-colors">
+                Applications
+              </Link>
+              <Link to="/check-status" className="text-white hover:text-islamic-accent transition-colors">
+                Check Status
+              </Link>
               {isAdmin && (
                 <Link to="/admin" className="text-white hover:text-islamic-accent transition-colors">
                   Admin Panel
                 </Link>
               )}
-              <Link to="/check-status" className="text-white hover:text-islamic-accent transition-colors">
-                Check Status
-              </Link>
             </>
           )}
           
@@ -120,6 +124,20 @@ const AppHeader: React.FC = () => {
                   >
                     Dashboard
                   </Link>
+                  <Link 
+                    to="/applications" 
+                    className="block px-3 py-2 text-white hover:bg-islamic-accent/20"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Applications
+                  </Link>
+                  <Link 
+                    to="/check-status" 
+                    className="block px-3 py-2 text-white hover:bg-islamic-accent/20"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Check Status
+                  </Link>
                   {isAdmin && (
                     <Link 
                       to="/admin" 
@@ -129,13 +147,6 @@ const AppHeader: React.FC = () => {
                       Admin Panel
                     </Link>
                   )}
-                  <Link 
-                    to="/check-status" 
-                    className="block px-3 py-2 text-white hover:bg-islamic-accent/20"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Check Status
-                  </Link>
                   <Link 
                     to="/profile" 
                     className="block px-3 py-2 text-white hover:bg-islamic-accent/20"
