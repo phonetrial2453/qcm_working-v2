@@ -5,7 +5,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, ShieldCheck, BookOpenCheck, BarChart3, PieChart, FileImage } from 'lucide-react';
+import { FileImage, BarChart3, PieChart } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
@@ -162,64 +162,23 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Check if user is admin and redirect if not
+  useEffect(() => {
+    if (userRoles.length > 0 && !isAdmin) {
+      navigate('/');
+    }
+  }, [userRoles, isAdmin, navigate]);
+
+  // If not admin, don't render the page
+  if (!isAdmin) {
+    return null;
+  }
+
   return (
     <AppLayout>
       <div className="container mx-auto py-6">
         <h1 className="text-3xl font-bold mb-6 text-islamic-primary">Dashboard</h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile</CardTitle>
-              <CardDescription>View and manage your profile settings</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                You are currently signed in as {user?.email}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Role: {userRoles.join(', ') || 'User'}
-              </p>
-            </CardContent>
-            <Button onClick={() => navigate('/profile')}>
-              <User className="mr-2 h-4 w-4" />
-              View Profile
-            </Button>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Applications</CardTitle>
-              <CardDescription>Manage your applications</CardDescription>
-            </CardHeader>
-            <CardContent>
-              View, submit, and track the status of your applications.
-            </CardContent>
-            <Button onClick={() => navigate('/applications')}>
-              <BookOpenCheck className="mr-2 h-4 w-4" />
-              View Applications
-            </Button>
-          </Card>
-
-          {isAdmin && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Admin</CardTitle>
-                <CardDescription>Admin-only functions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                Manage users, classes, and system settings.
-              </CardContent>
-              <Button onClick={() => navigate('/admin')}>
-                <ShieldCheck className="mr-2 h-4 w-4" />
-                Admin Dashboard
-              </Button>
-            </Card>
-          )}
-        </div>
-        
-        {/* Reports & Analytics Section */}
-        {isAdmin && (
         <div className="mt-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
             <div>
@@ -450,7 +409,6 @@ const Dashboard: React.FC = () => {
             </TabsContent>
           </Tabs>
         </div>
-        )}
 
         <div className="mt-6">
           <Button variant="outline" onClick={handleSignOut}>
