@@ -51,20 +51,9 @@ export const parseApplicationText = (text: string) => {
       referredBy: {},
     };
 
-    // Split the text into sections
-    const normalizedText = text.replace(/={3,}/g, '===');
-    const sections = normalizedText.split('===').filter(Boolean);
-    
-    // Process each section
+    // Process text line by line to extract all fields from Full Name to Batch#
+    const lines = text.split('\n');
     let currentSection: string | null = null;
-    
-    // If the first section doesn't have a header, assume it's the class code
-    if (sections.length > 0 && !sections[0].includes(':')) {
-      parsedData.classCode = sections[0].trim();
-    }
-
-    // Process remaining text line by line
-    let lines = text.split('\n');
     
     for (let line of lines) {
       line = line.trim();
@@ -90,46 +79,65 @@ export const parseApplicationText = (text: string) => {
         continue;
       }
       
-      // Process the line if we're in a section
-      if (currentSection) {
-        const colonIndex = line.indexOf(':');
-        if (colonIndex > 0) {
-          let key = line.substring(0, colonIndex).trim()
-            .replace(/[^a-zA-Z0-9]/g, '') // Remove special characters
-            .replace(/\s+/g, '') // Remove spaces
-            .replace(/^\w/, c => c.toLowerCase()); // Make first letter lowercase
-            
-          let value = line.substring(colonIndex + 1).trim();
-          
-          // Special case for age - convert to number
-          if ((key === 'age' || key.toLowerCase().includes('age')) && !isNaN(parseInt(value))) {
-            parsedData[currentSection][key] = parseInt(value);
-          } 
-          // Special case for email - ensure proper format
-          else if (key === 'email' || key.toLowerCase().includes('email')) {
-            const emailValue = value.trim();
-            parsedData.otherDetails.email = emailValue; // Always store email in otherDetails
-          } 
-          else {
-            parsedData[currentSection][key] = value;
+      // Process key-value pairs
+      const colonIndex = line.indexOf(':');
+      if (colonIndex > 0) {
+        let key = line.substring(0, colonIndex).trim();
+        let value = line.substring(colonIndex + 1).trim();
+        
+        // Normalize key for storage
+        const normalizedKey = key
+          .replace(/[^a-zA-Z0-9]/g, '') // Remove special characters
+          .replace(/\s+/g, '') // Remove spaces
+          .replace(/^\w/, c => c.toLowerCase()); // Make first letter lowercase
+        
+        // Determine section based on key if not explicitly set
+        if (!currentSection) {
+          if (key.toLowerCase().includes('name') || key.toLowerCase().includes('mobile') || key.toLowerCase().includes('whatsapp')) {
+            currentSection = 'studentDetails';
+          } else if (key.toLowerCase().includes('email') || key.toLowerCase().includes('age') || key.toLowerCase().includes('qualification') || key.toLowerCase().includes('profession')) {
+            currentSection = 'otherDetails';
+          } else if (key.toLowerCase().includes('hometown') || key.toLowerCase().includes('district')) {
+            currentSection = 'hometownDetails';
+          } else if (key.toLowerCase().includes('residence') || key.toLowerCase().includes('mandal')) {
+            currentSection = 'currentResidence';
+          } else if (key.toLowerCase().includes('referred') || key.toLowerCase().includes('batch')) {
+            currentSection = 'referredBy';
+          } else {
+            currentSection = 'otherDetails'; // Default section
           }
+        }
+        
+        // Special handling for specific fields
+        if (key.toLowerCase().includes('age') && !isNaN(parseInt(value))) {
+          parsedData.otherDetails.age = parseInt(value);
+        } else if (key.toLowerCase().includes('email')) {
+          parsedData.otherDetails.email = value;
+        } else if (key.toLowerCase().includes('batch')) {
+          // Store batch in referredBy section
+          parsedData.referredBy.batch = value;
+        } else if (key.toLowerCase().includes('name')) {
+          if (currentSection === 'referredBy') {
+            parsedData.referredBy.fullName = value;
+          } else {
+            parsedData.studentDetails.fullName = value;
+          }
+        } else if (currentSection) {
+          parsedData[currentSection][normalizedKey] = value;
         }
       }
     }
     
-    // Special handling for fullName
+    // Ensure fullName is properly set
     if (parsedData.studentDetails.name && !parsedData.studentDetails.fullName) {
       parsedData.studentDetails.fullName = parsedData.studentDetails.name;
       delete parsedData.studentDetails.name;
     }
     
-    // Check for email in any section and move it to otherDetails
-    for (const section of ['studentDetails', 'hometownDetails', 'currentResidence', 'referredBy']) {
-      if (parsedData[section].email || parsedData[section].emailAddress) {
-        parsedData.otherDetails.email = parsedData[section].email || parsedData[section].emailAddress;
-        delete parsedData[section].email;
-        delete parsedData[section].emailAddress;
-      }
+    // Extract class code from the beginning if present
+    const firstLine = lines[0]?.trim();
+    if (firstLine && !firstLine.includes(':') && firstLine.length < 10) {
+      parsedData.classCode = firstLine;
     }
     
     return parsedData;
