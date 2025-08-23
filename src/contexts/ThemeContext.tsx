@@ -99,13 +99,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Ensure we have a valid color to prevent the TypeError
     const safeColor = isValidThemeColor(color) ? color : DEFAULT_THEME_COLOR;
     
-    // Color HSL values for each theme
+    // Color HSL values for each theme - using light green as requested
     const colorValues = {
       green: {
         primary: isDark ? '156 47% 50%' : '156 47% 14%',
         secondary: isDark ? '109 34% 42%' : '109 34% 32%',
         accent: '39 100% 61%',
-        background: isDark ? '156 47% 5%' : '159 48% 21% 0.02',
+        background: isDark ? '156 47% 5%' : '164 100% 95%', // Light green background #ccfff5
         card: isDark ? '156 47% 10%' : '0 0% 100%',
       },
       blue: {
