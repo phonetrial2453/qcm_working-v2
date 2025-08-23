@@ -9,8 +9,8 @@ export interface ParsedApplication {
 
 export const parseMultipleApplications = (text: string): ParsedApplication[] => {
   try {
-    // Split applications using "Full Name" as the delimiter
-    const fullNamePattern = /(?:^|\n)\s*(?:Full\s*Name|Name)\s*[:]\s*([^\n]+)/gi;
+    // Split applications using "=== Full Name" as the delimiter
+    const fullNamePattern = /(?:^|\n)\s*===\s*Full\s*Name\s*[:=]\s*([^\n]+)/gi;
     const matches = [...text.matchAll(fullNamePattern)];
     
     if (matches.length === 0) {

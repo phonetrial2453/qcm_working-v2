@@ -13,8 +13,8 @@ export interface DuplicateMatch {
 }
 
 export const useDuplicateCheck = () => {
-  const checkForDuplicates = async (email?: string, mobile?: string): Promise<DuplicateMatch[]> => {
-    if (!email && !mobile) return [];
+  const checkForDuplicates = async (fullName?: string, mobile?: string, email?: string): Promise<DuplicateMatch[]> => {
+    if (!fullName && !mobile && !email) return [];
     
     try {
       // Query the database for potential duplicates
@@ -22,8 +22,12 @@ export const useDuplicateCheck = () => {
         .from('applications')
         .select('*');
       
-      // Build OR condition for email and mobile
+      // Build OR condition for name, mobile, and email
       const conditions: string[] = [];
+      
+      if (fullName) {
+        conditions.push(`student_details->>'fullName' ilike '%${fullName.trim()}%'`);
+      }
       
       if (email) {
         conditions.push(`other_details->>'email' ilike '${email}'`);
@@ -51,6 +55,15 @@ export const useDuplicateCheck = () => {
       for (const app of applications || []) {
         const transformedApp = transformApplicationData(app);
         let isDuplicate = false;
+        
+        // Check name match
+        if (fullName && transformedApp.studentDetails?.fullName) {
+          const name1 = fullName.toLowerCase().trim();
+          const name2 = transformedApp.studentDetails.fullName.toLowerCase().trim();
+          if (name1.includes(name2) || name2.includes(name1) || name1 === name2) {
+            isDuplicate = true;
+          }
+        }
         
         // Check email match
         if (email && transformedApp.otherDetails?.email) {

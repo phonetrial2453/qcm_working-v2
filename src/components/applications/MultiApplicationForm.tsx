@@ -42,12 +42,13 @@ export const MultiApplicationForm: React.FC<MultiApplicationFormProps> = ({
         const duplicates: Record<string, DuplicateMatch[]> = {};
         
         for (const app of parsed) {
+          const fullName = app.parsedData?.studentDetails?.fullName;
           const email = app.parsedData?.otherDetails?.email;
           const mobile = app.parsedData?.studentDetails?.mobile;
           
-          if (email || mobile) {
+          if (fullName || email || mobile) {
             try {
-              const matches = await checkForDuplicates(email, mobile);
+              const matches = await checkForDuplicates(fullName, mobile, email);
               if (matches.length > 0) {
                 duplicates[app.id] = matches;
               }
