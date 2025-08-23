@@ -26,21 +26,26 @@ export const useDuplicateCheck = () => {
       const conditions: string[] = [];
       
       if (fullName) {
-        conditions.push(`student_details->>'fullName' ilike '%${fullName.trim()}%'`);
+        conditions.push(`student_details->>'fullName'.ilike.%${fullName.trim()}%`);
       }
       
       if (email) {
-        conditions.push(`other_details->>'email' ilike '${email}'`);
+        conditions.push(`other_details->>'email'.ilike.${email}`);
       }
       
       if (mobile) {
         const normalizedMobile = mobile.replace(/\D/g, ''); // Remove non-digits
-        // Check for mobile numbers with last 10 digits matching
-        conditions.push(`student_details->>'mobile' like '%${normalizedMobile.slice(-10)}'`);
+        // Check for mobile numbers with last 8 digits matching
+        const lastDigits = normalizedMobile.slice(-8);
+        if (lastDigits.length >= 8) {
+          conditions.push(`student_details->>'mobile'.like.%${lastDigits}`);
+        }
       }
       
       if (conditions.length > 0) {
-        query = query.or(conditions.join(','));
+        // Use proper PostgREST OR syntax
+        const orCondition = conditions.join(',');
+        query = query.or(orCondition);
       }
       
       const { data: applications, error } = await query;
