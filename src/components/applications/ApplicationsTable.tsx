@@ -6,13 +6,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Eye, Filter } from 'lucide-react';
+import { MoreHorizontal, Eye, Trash2 } from 'lucide-react';
 import { Application } from '@/types/application';
 
 interface ApplicationsTableProps {
   applications: Application[];
   isAdmin: boolean;
   onChangeStatus: (applicationId: string) => void;
+  onDeleteApplication: (applicationId: string) => void;
   formatDate: (date: string) => string;
 }
 
@@ -20,6 +21,7 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   applications,
   isAdmin,
   onChangeStatus,
+  onDeleteApplication,
   formatDate,
 }) => {
   const navigate = useNavigate();
@@ -78,9 +80,12 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                             View Details
                           </DropdownMenuItem>
                           {isAdmin && (
-                            <DropdownMenuItem onClick={() => onChangeStatus(application.id)}>
-                              <Filter className="h-4 w-4 mr-2" />
-                              Change Status
+                            <DropdownMenuItem 
+                              onClick={() => onDeleteApplication(application.id)}
+                              className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Application
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>

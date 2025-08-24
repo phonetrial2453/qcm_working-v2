@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, Key } from 'lucide-react';
 
 interface User {
   id: string;
@@ -33,6 +33,7 @@ interface ModeratorTableProps {
   loading: boolean;
   onEdit: (user: User) => void;
   onDelete: (user: User) => void;
+  onResetPassword: (user: User) => void;
 }
 
 const ModeratorTable: React.FC<ModeratorTableProps> = ({
@@ -42,6 +43,7 @@ const ModeratorTable: React.FC<ModeratorTableProps> = ({
   loading,
   onEdit,
   onDelete,
+  onResetPassword,
 }) => {
   const getUserRoles = (userId: string) => {
     return userRoles
@@ -117,6 +119,14 @@ const ModeratorTable: React.FC<ModeratorTableProps> = ({
                           onClick={() => onEdit(user)}
                         >
                           <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => onResetPassword(user)}
+                        >
+                          <Key className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"

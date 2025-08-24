@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 
 export const applicationSchema = z.object({
@@ -103,10 +102,15 @@ export const parseApplicationText = (text: string) => {
         
         // Field mapping based on the new format
         if (key.toLowerCase().includes('full name')) {
+          // Auto-format name: capitalize first letter of each word
+          const formattedName = value.split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+          
           if (currentSection === 'referredBy') {
-            parsedData.referredBy.fullName = value;
+            parsedData.referredBy.fullName = formattedName;
           } else {
-            parsedData.studentDetails.fullName = value;
+            parsedData.studentDetails.fullName = formattedName;
           }
         } else if (key.toLowerCase().includes('mobile') && key.includes('+974')) {
           parsedData.studentDetails.mobile = value;

@@ -8,11 +8,14 @@ import { useModeratorManagement } from '@/hooks/useModeratorManagement';
 import AddModeratorDialog from '@/components/admin/AddModeratorDialog';
 import EditModeratorDialog from '@/components/admin/EditModeratorDialog';
 import DeleteModeratorDialog from '@/components/admin/DeleteModeratorDialog';
+import { PasswordResetDialog } from '@/components/admin/PasswordResetDialog';
 import ModeratorTable from '@/components/admin/ModeratorTable';
 
 const ModeratorManagementPage: React.FC = () => {
   const { isAdmin: userIsAdmin } = useAuth();
   const { classes } = useApplications();
+  const [passwordResetUser, setPasswordResetUser] = React.useState<any>(null);
+  const [isPasswordResetOpen, setIsPasswordResetOpen] = React.useState(false);
   
   const {
     users,
@@ -39,6 +42,11 @@ const ModeratorManagementPage: React.FC = () => {
     toggleClassSelection,
     updateSelectedClasses
   } = useModeratorManagement();
+
+  const handlePasswordReset = (user: any) => {
+    setPasswordResetUser(user);
+    setIsPasswordResetOpen(true);
+  };
 
   // Reset selected classes when editing user changes
   useEffect(() => {
@@ -79,6 +87,12 @@ const ModeratorManagementPage: React.FC = () => {
             onDelete={handleDeleteUser}
             onCancel={cancelDeleteUser}
           />
+
+          <PasswordResetDialog
+            open={isPasswordResetOpen}
+            onOpenChange={setIsPasswordResetOpen}
+            user={passwordResetUser}
+          />
         </div>
         
         <ModeratorTable
@@ -88,6 +102,7 @@ const ModeratorManagementPage: React.FC = () => {
           loading={loading}
           onEdit={handleEditClick}
           onDelete={confirmDeleteUser}
+          onResetPassword={handlePasswordReset}
         />
       </div>
     </AppLayout>

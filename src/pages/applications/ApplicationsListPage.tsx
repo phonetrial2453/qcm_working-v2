@@ -8,8 +8,11 @@ import { ApplicationsHeader } from '@/components/applications/ApplicationsHeader
 import { useApplicationsList } from './hooks/useApplicationsList';
 import { useApplicationStatus } from './hooks/useApplicationStatus';
 import { exportToCSV, exportToImage, formatDate } from './utils/exportUtils';
+import { useApplications } from '@/contexts/ApplicationContext';
+import { toast } from '@/components/ui/sonner';
 
 const ApplicationsListPage: React.FC = () => {
+  const { deleteApplication, fetchApplications } = useApplications();
   const {
     filteredApplications,
     searchTerm,
@@ -42,6 +45,24 @@ const ApplicationsListPage: React.FC = () => {
     exportToImage(tableRef);
   };
 
+  const handleDeleteApplication = async (applicationId: string) => {
+    if (!isAdmin) {
+      toast.error('Only administrators can delete applications');
+      return;
+    }
+
+    if (confirm('Are you sure you want to delete this application? This action cannot be undone.')) {
+      try {
+        await deleteApplication(applicationId);
+        toast.success('Application deleted successfully');
+        await fetchApplications(); // Refresh the list
+      } catch (error: any) {
+        console.error('Error deleting application:', error);
+        toast.error(`Failed to delete application: ${error.message}`);
+      }
+    }
+  };
+
   return (
     <AppLayout>
       <div className="container mx-auto">
@@ -65,6 +86,7 @@ const ApplicationsListPage: React.FC = () => {
             applications={filteredApplications}
             isAdmin={isAdmin}
             onChangeStatus={openStatusDialog}
+            onDeleteApplication={handleDeleteApplication}
             formatDate={formatDate}
           />
         </div>
