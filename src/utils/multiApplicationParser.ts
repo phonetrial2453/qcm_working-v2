@@ -9,14 +9,33 @@ export interface ParsedApplication {
 
 export const parseMultipleApplications = (text: string): ParsedApplication[] => {
   try {
-    // Split applications using "=== Full Name" as the delimiter
-    const fullNamePattern = /(?:^|\n)\s*===\s*Full\s*Name\s*[:=]\s*([^\n]*)/gi;
-    const matches = [...text.matchAll(fullNamePattern)];
+    // Split by multiple patterns that indicate new applications
+    const separators = [
+      /\n\s*={5,}\s*\n/g, // === lines
+      /\n\s*-{5,}\s*\n/g, // --- lines
+      /\n\s*Application\s*\d+/gi, // "Application 1", "Application 2", etc.
+      /\n\s*\d+\.\s*/g, // Numbered lists: "1.", "2.", etc.
+    ];
     
-    console.log('Found matches:', matches.length); // Debug log
+    let applicationTexts: string[] = [text];
     
-    if (matches.length === 0) {
-      // Try parsing as single application
+    // Try each separator to split the text
+    for (const separator of separators) {
+      const newTexts: string[] = [];
+      for (const chunk of applicationTexts) {
+        const split = chunk.split(separator);
+        newTexts.push(...split);
+      }
+      applicationTexts = newTexts;
+    }
+    
+    // Filter out empty or too short texts
+    applicationTexts = applicationTexts
+      .map(t => t.trim())
+      .filter(t => t.length > 50); // Minimum length for a valid application
+    
+    // If no splitting worked, check if it's a single application
+    if (applicationTexts.length === 1) {
       const singleParsed = parseApplicationText(text);
       if (singleParsed) {
         return [{
@@ -29,52 +48,23 @@ export const parseMultipleApplications = (text: string): ParsedApplication[] => 
       return [];
     }
     
+    // Parse each application text
     const applications: ParsedApplication[] = [];
     
-    // If only one match, treat as single application
-    if (matches.length === 1) {
-      const parsed = parseApplicationText(text);
+    for (let i = 0; i < applicationTexts.length; i++) {
+      const appText = applicationTexts[i];
+      const parsed = parseApplicationText(appText);
+      
       if (parsed) {
         applications.push({
           id: generateTempId(),
           parsedData: parsed,
-          originalText: text,
+          originalText: appText,
           status: 'pending'
         });
       }
-    } else {
-      // Multiple applications - split by "=== Full Name" occurrences
-      for (let i = 0; i < matches.length; i++) {
-        const currentMatch = matches[i];
-        const nextMatch = matches[i + 1];
-        
-        const startIndex = currentMatch.index || 0;
-        const endIndex = nextMatch ? (nextMatch.index || text.length) : text.length;
-        
-        const appText = text.substring(startIndex, endIndex).trim();
-        
-        console.log(`Application ${i + 1} text length:`, appText.length); // Debug log
-        
-        if (appText.length > 20) { // Minimum length check (reduced from 50)
-          const parsed = parseApplicationText(appText);
-          if (parsed) {
-            console.log(`Parsed application ${i + 1}:`, parsed.studentDetails?.fullName); // Debug log
-            applications.push({
-              id: generateTempId(),
-              parsedData: parsed,
-              originalText: appText,
-              status: 'pending'
-            });
-          } else {
-            console.log(`Failed to parse application ${i + 1}`); // Debug log
-          }
-        } else {
-          console.log(`Application ${i + 1} too short:`, appText.length); // Debug log
-        }
-      }
     }
     
-    console.log('Total applications parsed:', applications.length); // Debug log
     return applications;
   } catch (error) {
     console.error('Error parsing multiple applications:', error);

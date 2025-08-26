@@ -24,7 +24,6 @@ export const MultiApplicationForm: React.FC<MultiApplicationFormProps> = ({
   const [applications, setApplications] = useState<ParsedApplication[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [duplicateMatches, setDuplicateMatches] = useState<Record<string, DuplicateMatch[]>>({});
-  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
   
   const { classes } = useApplications();
   const { checkForDuplicates } = useDuplicateCheck();
@@ -33,50 +32,27 @@ export const MultiApplicationForm: React.FC<MultiApplicationFormProps> = ({
   
   // Parse applications when text changes
   useEffect(() => {
-    const parseAndCheckDuplicates = async () => {
-      if (!applicationText.trim()) {
-        setApplications([]);
-        setDuplicateMatches({});
-        return;
-      }
-
+    if (applicationText.trim()) {
       const parsed = parseMultipleApplications(applicationText);
       setApplications(parsed);
       setCurrentIndex(0);
       
-      // Only check duplicates if we have parsed applications
-      if (parsed.length > 0 && !isCheckingDuplicates) {
-        setIsCheckingDuplicates(true);
-        
-        try {
-          const duplicates: Record<string, DuplicateMatch[]> = {};
-          
-          for (const app of parsed) {
-            const fullName = app.parsedData?.studentDetails?.fullName;
-            const email = app.parsedData?.otherDetails?.email;
-            const mobile = app.parsedData?.studentDetails?.mobile;
-            
-            if (fullName || email || mobile) {
-              try {
-                const matches = await checkForDuplicates(fullName, mobile, email);
-                if (matches.length > 0) {
-                  duplicates[app.id] = matches;
-                }
-              } catch (error) {
-                console.error('Error checking duplicates for app:', app.id, error);
-              }
-            }
-          }
-          
-          setDuplicateMatches(duplicates);
-        } finally {
-          setIsCheckingDuplicates(false);
+      // Check for duplicates
+      const duplicates: Record<string, DuplicateMatch[]> = {};
+      parsed.forEach(app => {
+        const email = app.parsedData?.otherDetails?.email;
+        const mobile = app.parsedData?.studentDetails?.mobile;
+        const matches = checkForDuplicates(email, mobile);
+        if (matches.length > 0) {
+          duplicates[app.id] = matches;
         }
-      }
-    };
-    
-    parseAndCheckDuplicates();
-  }, [applicationText]); // Removed checkForDuplicates from dependencies to prevent infinite loop
+      });
+      setDuplicateMatches(duplicates);
+    } else {
+      setApplications([]);
+      setDuplicateMatches({});
+    }
+  }, [applicationText, checkForDuplicates]);
   
   // Validate current application
   useEffect(() => {

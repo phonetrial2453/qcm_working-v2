@@ -53,5 +53,5 @@ const ApplicationPreview: React.FC<ApplicationPreviewProps> = ({
   );
 };
 
-export { ApplicationPreview };
 export default ApplicationPreview;
+export { ApplicationPreview };

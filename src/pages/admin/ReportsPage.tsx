@@ -107,18 +107,6 @@ const ReportsPage: React.FC = () => {
   const approvalRate = totalApplications 
     ? Math.round((approvedApplications / totalApplications) * 100) 
     : 0;
-
-  // Reference batch analysis
-  const batchData = filteredApplications.reduce((acc: Record<string, number>, app) => {
-    const batch = app.referredBy?.batch || 'Unknown';
-    acc[batch] = (acc[batch] || 0) + 1;
-    return acc;
-  }, {});
-
-  const batchChartData = Object.entries(batchData).map(([name, value]) => ({
-    name,
-    applications: value,
-  }));
     
   const handleExportReport = () => {
     const activeTab = selectedTab;
@@ -265,10 +253,9 @@ const ReportsPage: React.FC = () => {
         </div>
         
         <Tabs defaultValue="overview" value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="by-class">By Class</TabsTrigger>
-            <TabsTrigger value="by-batch">By Reference Batch</TabsTrigger>
             <TabsTrigger value="trends">Trends</TabsTrigger>
           </TabsList>
           
@@ -360,35 +347,6 @@ const ReportsPage: React.FC = () => {
                     <Bar dataKey="Approved" stackId="a" fill="#10b981" />
                     <Bar dataKey="Pending" stackId="a" fill="#f59e0b" />
                     <Bar dataKey="Rejected" stackId="a" fill="#ef4444" />
-                  </RechartsBarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="by-batch" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <BarChart className="mr-2 h-5 w-5" />
-                  Applications by Reference Batch
-                </CardTitle>
-                <CardDescription>
-                  Breakdown of applications by referring batch
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-96">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsBarChart
-                    data={batchChartData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="applications" fill="#3b82f6" />
                   </RechartsBarChart>
                 </ResponsiveContainer>
               </CardContent>
