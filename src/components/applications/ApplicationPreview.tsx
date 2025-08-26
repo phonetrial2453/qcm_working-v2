@@ -14,7 +14,6 @@ interface ApplicationPreviewProps {
   onSubmit: () => void;
   isSubmitting: boolean;
   selectedClassCode: string;
-  showActionButtons?: boolean;
 }
 
 const ApplicationPreview: React.FC<ApplicationPreviewProps> = ({
@@ -23,7 +22,6 @@ const ApplicationPreview: React.FC<ApplicationPreviewProps> = ({
   onSubmit,
   isSubmitting,
   selectedClassCode,
-  showActionButtons = true,
 }) => {
   return (
     <div>
@@ -31,27 +29,24 @@ const ApplicationPreview: React.FC<ApplicationPreviewProps> = ({
       <div className="pt-4">
         <ValidationWarnings warnings={validationResult.warnings} />
       </div>
-      {showActionButtons && (
-        <div className="flex justify-end w-full mt-4">
-          <Button
-            onClick={onSubmit}
-            disabled={isSubmitting || !selectedClassCode || !parsedData}
-            className="px-6"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              "Submit Application"
-            )}
-          </Button>
-        </div>
-      )}
+      <div className="flex justify-end w-full mt-4">
+        <Button
+          onClick={onSubmit}
+          disabled={isSubmitting || !selectedClassCode || !parsedData}
+          className="px-6"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            "Submit Application"
+          )}
+        </Button>
+      </div>
     </div>
   );
 };
 
 export default ApplicationPreview;
-export { ApplicationPreview };

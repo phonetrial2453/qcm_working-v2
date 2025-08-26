@@ -10,7 +10,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { FormCard } from './form-components/FormCard';
 import { ClassSelector } from './form-components/ClassSelector';
 import { ApplicationTextInput } from './form-components/ApplicationTextInput';
-import { MultiApplicationForm } from './MultiApplicationForm';
 
 // Form data key for localStorage
 const FORM_DATA_KEY = 'application_form_data';
@@ -163,13 +162,16 @@ const NewApplicationForm: React.FC = () => {
         </div>
       </FormCard>
       
-      {applicationText.trim() && (
+      {parsedData && (
         <FormCard 
           title="Preview" 
           description="Review the parsed application data before submission"
         >
-          <MultiApplicationForm
-            applicationText={applicationText}
+          <ApplicationPreview
+            parsedData={parsedData}
+            validationResult={validationResult}
+            onSubmit={handleSubmitWrapper}
+            isSubmitting={isSubmitting}
             selectedClassCode={selectedClassCode}
           />
         </FormCard>
