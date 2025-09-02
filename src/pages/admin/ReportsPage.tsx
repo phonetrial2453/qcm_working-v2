@@ -9,6 +9,7 @@ import { toast } from '@/components/ui/sonner';
 import { useApplications } from '@/contexts/ApplicationContext';
 import { BarChart, PieChart, BarChart3, PieChart as PieChartIcon, Download, FileImage } from 'lucide-react';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { BatchReportChart } from '@/components/reports/BatchReportChart';
 
 const ReportsPage: React.FC = () => {
   const { applications, classes } = useApplications();
@@ -18,6 +19,7 @@ const ReportsPage: React.FC = () => {
   const chartRefs = {
     overview: useRef<HTMLDivElement>(null),
     byClass: useRef<HTMLDivElement>(null),
+    byBatch: useRef<HTMLDivElement>(null),
     trends: useRef<HTMLDivElement>(null),
   };
   
@@ -253,9 +255,10 @@ const ReportsPage: React.FC = () => {
         </div>
         
         <Tabs defaultValue="overview" value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="by-class">By Class</TabsTrigger>
+            <TabsTrigger value="by-batch">By Batch</TabsTrigger>
             <TabsTrigger value="trends">Trends</TabsTrigger>
           </TabsList>
           
@@ -353,6 +356,23 @@ const ReportsPage: React.FC = () => {
             </Card>
           </TabsContent>
           
+          <TabsContent value="by-batch" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <BarChart className="mr-2 h-5 w-5" />
+                  Applications by Reference Batch
+                </CardTitle>
+                <CardDescription>
+                  Breakdown of applications by reference provider's batch
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="h-96">
+                <BatchReportChart applications={filteredApplications} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="trends" className="mt-6">
             <Card>
               <CardHeader>

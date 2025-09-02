@@ -1,13 +1,20 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { MoreHorizontal, Eye, Filter } from 'lucide-react';
 import { Application } from '@/types/application';
+import { ColumnVisibilityToggle } from '@/components/admin/ColumnVisibilityToggle';
+
+interface ColumnConfig {
+  key: string;
+  label: string;
+  visible: boolean;
+}
 
 interface ApplicationsTableProps {
   applications: Application[];
@@ -23,6 +30,36 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   formatDate,
 }) => {
   const navigate = useNavigate();
+  
+  const [columns, setColumns] = useState<ColumnConfig[]>([
+    { key: 'id', label: 'ID', visible: true },
+    { key: 'name', label: 'Name', visible: true },
+    { key: 'mobile', label: 'Mobile', visible: true },
+    { key: 'email', label: 'Email', visible: false },
+    { key: 'class', label: 'Class', visible: true },
+    { key: 'status', label: 'Status', visible: true },
+    { key: 'submitted', label: 'Submitted', visible: true },
+    { key: 'batch', label: 'Ref. Batch', visible: false },
+    { key: 'actions', label: 'Actions', visible: true },
+  ]);
+
+  // Load column preferences from localStorage
+  useEffect(() => {
+    const savedColumns = localStorage.getItem('applicationTableColumns');
+    if (savedColumns) {
+      setColumns(JSON.parse(savedColumns));
+    }
+  }, []);
+
+  const handleColumnToggle = (key: string) => {
+    const updatedColumns = columns.map(col => 
+      col.key === key ? { ...col, visible: !col.visible } : col
+    );
+    setColumns(updatedColumns);
+    localStorage.setItem('applicationTableColumns', JSON.stringify(updatedColumns));
+  };
+
+  const getVisibleColumns = () => columns.filter(col => col.visible);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -36,61 +73,93 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
     }
   };
 
+  const visibleColumns = getVisibleColumns();
+  const colSpan = visibleColumns.length;
+
   return (
     <Card>
-      <CardContent className="pt-6">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <CardTitle>Applications</CardTitle>
+        {isAdmin && (
+          <ColumnVisibilityToggle
+            columns={columns}
+            onToggle={handleColumnToggle}
+          />
+        )}
+      </CardHeader>
+      <CardContent>
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Mobile</TableHead>
-                <TableHead>Class</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Submitted</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                {visibleColumns.map(col => (
+                  <TableHead 
+                    key={col.key} 
+                    className={col.key === 'actions' ? 'text-right' : ''}
+                  >
+                    {col.label}
+                  </TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {applications.length > 0 ? (
                 applications.map(application => (
                   <TableRow key={application.id}>
-                    <TableCell className="font-medium">{application.id}</TableCell>
-                    <TableCell>{application.studentDetails?.fullName || 'Unknown'}</TableCell>
-                    <TableCell>{application.studentDetails?.mobile || 'N/A'}</TableCell>
-                    <TableCell>{application.classCode}</TableCell>
-                    <TableCell>{getStatusBadge(application.status)}</TableCell>
-                    <TableCell>{formatDate(application.createdAt)}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => navigate(`/applications/${application.id}`)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
-                          {isAdmin && (
-                            <DropdownMenuItem onClick={() => onChangeStatus(application.id)}>
-                              <Filter className="h-4 w-4 mr-2" />
-                              Change Status
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+                    {visibleColumns.map(col => {
+                      switch (col.key) {
+                        case 'id':
+                          return <TableCell key={col.key} className="font-medium">{application.id}</TableCell>;
+                        case 'name':
+                          return <TableCell key={col.key}>{application.studentDetails?.fullName || 'Unknown'}</TableCell>;
+                        case 'mobile':
+                          return <TableCell key={col.key}>{application.studentDetails?.mobile || 'N/A'}</TableCell>;
+                        case 'email':
+                          return <TableCell key={col.key}>{application.otherDetails?.email || 'N/A'}</TableCell>;
+                        case 'class':
+                          return <TableCell key={col.key}>{application.classCode}</TableCell>;
+                        case 'status':
+                          return <TableCell key={col.key}>{getStatusBadge(application.status)}</TableCell>;
+                        case 'submitted':
+                          return <TableCell key={col.key}>{formatDate(application.createdAt)}</TableCell>;
+                        case 'batch':
+                          return <TableCell key={col.key}>{application.referredBy?.batch || 'N/A'}</TableCell>;
+                        case 'actions':
+                          return (
+                            <TableCell key={col.key} className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    <span className="sr-only">Open menu</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => navigate(`/applications/${application.id}`)}>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View Details
+                                  </DropdownMenuItem>
+                                  {isAdmin && (
+                                    <DropdownMenuItem onClick={() => onChangeStatus(application.id)}>
+                                      <Filter className="h-4 w-4 mr-2" />
+                                      Change Status
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          );
+                        default:
+                          return null;
+                      }
+                    })}
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={colSpan} className="text-center py-6 text-muted-foreground">
                     No applications found.
                   </TableCell>
                 </TableRow>

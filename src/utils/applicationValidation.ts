@@ -101,6 +101,11 @@ export const parseApplicationText = (text: string) => {
             
           let value = line.substring(colonIndex + 1).trim();
           
+          // Auto-format names: capitalize first letter of each word
+          if (key === 'fullname' || key === 'name' || key.toLowerCase().includes('name')) {
+            value = value.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+          }
+          
           // Special case for age - convert to number
           if ((key === 'age' || key.toLowerCase().includes('age')) && !isNaN(parseInt(value))) {
             parsedData[currentSection][key] = parseInt(value);
@@ -117,10 +122,24 @@ export const parseApplicationText = (text: string) => {
       }
     }
     
-    // Special handling for fullName
+    // Special handling for fullName and auto-formatting
     if (parsedData.studentDetails.name && !parsedData.studentDetails.fullName) {
       parsedData.studentDetails.fullName = parsedData.studentDetails.name;
       delete parsedData.studentDetails.name;
+    }
+    
+    // Ensure fullName is properly formatted
+    if (parsedData.studentDetails.fullName) {
+      parsedData.studentDetails.fullName = parsedData.studentDetails.fullName
+        .toLowerCase()
+        .replace(/\b\w/g, l => l.toUpperCase());
+    }
+    
+    // Format referred by name as well
+    if (parsedData.referredBy.fullName) {
+      parsedData.referredBy.fullName = parsedData.referredBy.fullName
+        .toLowerCase()
+        .replace(/\b\w/g, l => l.toUpperCase());
     }
     
     // Check for email in any section and move it to otherDetails
