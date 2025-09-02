@@ -39,7 +39,15 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
     { key: 'class', label: 'Class', visible: true },
     { key: 'status', label: 'Status', visible: true },
     { key: 'submitted', label: 'Submitted', visible: true },
+    { key: 'qualification', label: 'Qualification', visible: false },
+    { key: 'profession', label: 'Profession', visible: false },
+    { key: 'age', label: 'Age', visible: false },
+    { key: 'whatsapp', label: 'WhatsApp', visible: false },
+    { key: 'address', label: 'Address', visible: false },
+    { key: 'referrerName', label: 'Referrer Name', visible: false },
     { key: 'batch', label: 'Ref. Batch', visible: false },
+    { key: 'remarks', label: 'Remarks', visible: false },
+    { key: 'naqeeb', label: 'Naqeeb', visible: false },
     { key: 'actions', label: 'Actions', visible: true },
   ]);
 
@@ -122,8 +130,28 @@ export const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                           return <TableCell key={col.key}>{getStatusBadge(application.status)}</TableCell>;
                         case 'submitted':
                           return <TableCell key={col.key}>{formatDate(application.createdAt)}</TableCell>;
+                        case 'qualification':
+                          return <TableCell key={col.key}>{application.otherDetails?.qualification || 'N/A'}</TableCell>;
+                        case 'profession':
+                          return <TableCell key={col.key}>{application.otherDetails?.profession || 'N/A'}</TableCell>;
+                        case 'age':
+                          return <TableCell key={col.key}>{application.otherDetails?.age || 'N/A'}</TableCell>;
+                        case 'whatsapp':
+                          return <TableCell key={col.key}>{application.studentDetails?.whatsapp || 'N/A'}</TableCell>;
+                        case 'address':
+                          return (
+                            <TableCell key={col.key} className="max-w-[200px] truncate">
+                              {`${application.currentResidence?.area || ''}, ${application.currentResidence?.city || ''}, ${application.currentResidence?.state || ''}`.trim() || 'N/A'}
+                            </TableCell>
+                          );
+                        case 'referrerName':
+                          return <TableCell key={col.key}>{application.referredBy?.fullName || 'N/A'}</TableCell>;
                         case 'batch':
                           return <TableCell key={col.key}>{application.referredBy?.batch || 'N/A'}</TableCell>;
+                        case 'remarks':
+                          return <TableCell key={col.key} className="max-w-[200px] truncate">{application.remarks || 'N/A'}</TableCell>;
+                        case 'naqeeb':
+                          return <TableCell key={col.key}>{application.naqeeb || 'N/A'}</TableCell>;
                         case 'actions':
                           return (
                             <TableCell key={col.key} className="text-right">

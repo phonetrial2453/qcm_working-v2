@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useApplications } from '@/contexts/ApplicationContext';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { useRef } from 'react';
+import { BatchReportChart } from '@/components/reports/BatchReportChart';
 
 const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -291,9 +292,10 @@ const Dashboard: React.FC = () => {
           </div>
           
           <Tabs defaultValue="overview" value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="by-class">By Class</TabsTrigger>
+              <TabsTrigger value="by-batch">By Batch</TabsTrigger>
               <TabsTrigger value="trends">Trends</TabsTrigger>
             </TabsList>
             
@@ -387,6 +389,20 @@ const Dashboard: React.FC = () => {
                       <Bar dataKey="Rejected" stackId="a" fill="#ef4444" />
                     </RechartsBarChart>
                   </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="by-batch" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Applications by Reference Batch</CardTitle>
+                  <CardDescription>
+                    Breakdown of applications by referrer's batch
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <BatchReportChart applications={applications} />
                 </CardContent>
               </Card>
             </TabsContent>
