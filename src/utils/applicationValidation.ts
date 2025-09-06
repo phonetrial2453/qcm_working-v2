@@ -40,6 +40,42 @@ export type ValidationError = {
   message: string;
 };
 
+// Validation for referrer details
+export const validateReferrerDetails = (data: any): ValidationError[] => {
+  const warnings: ValidationError[] = [];
+  const referredBy = data?.referredBy || {};
+
+  if (!referredBy.fullName || !referredBy.fullName.trim()) {
+    warnings.push({
+      field: 'referredBy.fullName',
+      message: 'Referrer full name is required'
+    });
+  }
+
+  if (!referredBy.mobile || !referredBy.mobile.trim()) {
+    warnings.push({
+      field: 'referredBy.mobile',
+      message: 'Referrer mobile number is required'
+    });
+  }
+
+  if (!referredBy.batch || !referredBy.batch.trim()) {
+    warnings.push({
+      field: 'referredBy.batch',
+      message: 'Referrer batch is required'
+    });
+  }
+
+  if (!referredBy.studentId || !referredBy.studentId.trim()) {
+    warnings.push({
+      field: 'referredBy.studentId',
+      message: 'Referrer student ID is required'
+    });
+  }
+
+  return warnings;
+};
+
 export const parseApplicationText = (text: string) => {
   try {
     // Initialize data structure
